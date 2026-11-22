@@ -1,0 +1,35 @@
+name: Publier la PWA sur GitHub Pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths: ['app/**', '.github/workflows/pages.yml']
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Lire les sources
+        uses: actions/checkout@v6
+      - name: Configurer Pages
+        uses: actions/configure-pages@v5
+      - name: Préparer les fichiers statiques sans compilation
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: app
+      - name: Publier
+        id: deployment
+        uses: actions/deploy-pages@v4
