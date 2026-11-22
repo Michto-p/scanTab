@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="720" viewBox="0 0 1040 720">
+  <!-- Tableau artificiel de recette : pas de photo ni de donnée d'apprentissage. -->
+  <rect width="1040" height="720" fill="#dadada"/>
+  <rect x="120" y="150" width="800" height="420" fill="#f2f2f2"/>
+  <!-- Les joints verticaux traversent les façades ; les leviers restent courts. -->
+  <g fill="#4b4b4b">
+    <rect x="120" y="150" width="3" height="420"/>
+    <rect x="320" y="150" width="3" height="420"/>
+    <rect x="420" y="150" width="3" height="420"/>
+    <rect x="520" y="150" width="3" height="420"/>
+    <rect x="620" y="150" width="3" height="420"/>
+    <rect x="720" y="150" width="3" height="420"/>
+    <rect x="917" y="150" width="3" height="420"/>
+  </g>
+  <g fill="#000" font-family="Arial, sans-serif" font-size="24">
+    <text x="143" y="192">HAGER</text>
+    <text x="143" y="232">RCCB</text>
+    <text x="143" y="272">40 A</text>
+    <text x="143" y="312">30 mA</text>
+    <text x="143" y="352">Type A</text>
+    <text x="143" y="392">TEST</text>
+    <text x="143" y="432">2P</text>
+  </g>
+  <g fill="#000" font-family="Arial, sans-serif" font-size="22">
+    <text x="327" y="192">HAGER</text>
+    <text x="327" y="237">Réf.</text>
+    <text x="327" y="272" font-size="20">MFS716</text>
+    <text x="327" y="327" font-size="30">C16</text>
+    <text x="327" y="377">1P+N</text>
+    <text x="327" y="422">MCB</text>
+
+    <text x="427" y="192">HAGER</text>
+    <text x="427" y="237">Réf.</text>
+    <text x="427" y="272" font-size="20">MFS710</text>
+    <text x="427" y="327" font-size="30">B10</text>
+    <text x="427" y="377">1P+N</text>
+    <text x="427" y="422">MCB</text>
+
+    <text x="527" y="192">HAGER</text>
+    <text x="527" y="237">Réf.</text>
+    <text x="527" y="272" font-size="20">MFS720</text>
+    <text x="527" y="327" font-size="30">C20</text>
+    <text x="527" y="377">1P+N</text>
+    <text x="527" y="422">MCB</text>
+
+    <text x="627" y="192">HAGER</text>
+    <text x="627" y="237">Réf.</text>
+    <text x="627" y="272" font-size="20">MFS720</text>
+    <text x="627" y="327" font-size="30">D20</text>
+    <text x="627" y="377">1P+N</text>
+    <text x="627" y="422">MCB</text>
+  </g>
+  <g fill="#000" font-family="Arial, sans-serif" font-size="24">
+    <text x="733" y="202">CONTACTEUR</text>
+    <text x="733" y="262">LEGRAND</text>
+    <text x="733" y="322">25 A</text>
+  </g>
+  <g fill="#282828">
+    <rect x="173" y="475" width="88" height="35"/>
+    <rect x="353" y="475" width="35" height="35"/>
+    <rect x="453" y="475" width="35" height="35"/>
+    <rect x="553" y="475" width="35" height="35"/>
+    <rect x="653" y="475" width="35" height="35"/>
+    <rect x="773" y="475" width="88" height="35"/>
+  </g>
+</svg>

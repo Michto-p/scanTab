@@ -14,7 +14,7 @@ async function worker(){
   if(current)return current;
   if(!starting){const version=generation;const opening=createWorker('eng+fra',1,{
     workerPath:new URL('worker.min.js',base).href,corePath:new URL('core/',base).href,langPath:new URL('tessdata/',base).href,
-    workerBlobURL:false,gzip:false,cacheMethod:'none',logger:progress,errorHandler:()=>{}
+    workerBlobURL:false,gzip:false,cacheMethod:'none',logger:event=>{if(version===generation)progress(event);},errorHandler:()=>{}
   }).then(async value=>{if(version!==generation){await value.terminate();throw abortError();}current=value;await value.setParameters({tessedit_pageseg_mode:'11',user_defined_dpi:'300'});return value;}).finally(()=>{if(starting===opening)starting=null;});starting=opening;}
   return starting;
 }

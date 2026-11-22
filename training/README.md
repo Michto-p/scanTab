@@ -2,6 +2,8 @@
 
 Le serveur Node.js reçoit les actions explicites de la PWA. Tesseract.js lit les marquages ; Python classe uniquement la famille lorsqu'un modèle électrique entraîné existe. Aucun service d'IA distant n'est utilisé.
 
+Ce serveur est facultatif : la PWA possède aussi son propre OCR, une estimation géométrique et des règles de familles qui fonctionnent directement sur le téléphone. Il n'est pas nécessaire de l'installer ou de connecter un PC pour le travail de base.
+
 ## Installation et démarrage Windows
 
 1. Installer Node.js 24 ou récent.

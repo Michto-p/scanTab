@@ -29,7 +29,7 @@ test('Demi-modules jointifs et largeur physique explicite sur la référence',as
 test('Deux rangées proposées sur le dessin annoté, rien inventé sur fond uniforme',async()=>{
   const {annotation,image}=await fixture(),rows=suggestRows(image);
   assert.equal(rows.length,2);
-  rows.forEach((r,i)=>{assert.equal(validateRow(r,720,520),true);assert.ok(Math.abs(r.top-annotation.rows[i].top)<=annotation.tolerance_px);assert.ok(Math.abs(r.bottom-annotation.rows[i].bottom)<=annotation.tolerance_px);});
+  rows.forEach((r,i)=>{assert.equal(validateRow(r,720,520),false);assert.equal(r.modules,null);assert.deepEqual(r.cuts,[]);assert.ok(Math.abs(r.top-annotation.rows[i].top)<=annotation.tolerance_px);assert.ok(Math.abs(r.bottom-annotation.rows[i].bottom)<=annotation.tolerance_px);});
   const data=new Uint8ClampedArray(120*100*4).fill(240);
   for(let i=3;i<data.length;i+=4)data[i]=255;
   assert.deepEqual(suggestRows({width:120,height:100,data}),[]);

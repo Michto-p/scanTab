@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Scan Tableau",
   "short_name": "Scan Tableau",
-  "description": "Collecte et validation locale de tableaux électriques",
+  "description": "Analyse, lecture et validation de tableaux électriques hors ligne",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",

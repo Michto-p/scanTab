@@ -54,7 +54,7 @@ L'utilisateur a autorisé le moteur Python local et choisi `Michto-p/scanTab`. C
 - [x] Publier `app/` sur GitHub Pages dans `Michto-p/scanTab` et vérifier l'adresse publique : HTTP 200, déploiement Actions réussi, modules et service worker chargés depuis `/scanTab/`, puis rechargement complet hors ligne dans Chrome. Connexion réelle de cette page HTTPS au serveur PC HTTP local vérifiée dans Chrome de bureau avec permission réseau accordée.
 - [ ] Essayer le téléphone réel sur le même Wi-Fi : autorisation réseau Chrome, pare-feu et HTTPS reconnu pour Safari.
 - [ ] Collecter plusieurs séances réelles validées, entraîner puis mesurer la reconnaissance sur des séances réservées. Aucun modèle électrique n'est encore adopté.
-- [ ] Fournir une publication et une inférence du modèle de familles sur téléphone ; pour cette extension, l'analyse automatique est effectuée sur le PC et la collecte reste hors ligne.
+- [ ] Fournir une publication et une inférence du réseau de familles sur téléphone. L'OCR et les règles de familles sans réseau d'apprentissage sont traités par la priorité d'autonomie ci-dessous.
 
 Le modèle d'extraction ImageNet installé n'est pas un modèle de familles d'appareils électriques. Les anciennes mentions « sans dépendance » et « sans OCR » ci-dessus décrivent la livraison initiale ; l'extension ajoute des dépendances uniquement sur le PC. Aucun appel à une API d'IA distante.
 
@@ -71,6 +71,8 @@ Correction explicite de l'utilisateur : fournir le travail de base embarqué ava
 - [x] Embarquer Tesseract.js 7.0.0 et ses langues localement (17,14 Mo, SHA-256 et licences), avec cache complet : OCR réel vérifié après coupure réseau/cache HTTP et fermeture effective des serveurs web et PC.
 - [x] Extraire les marquages et proposer les familles par règles prudentes de provenance `regles_ocr`, sans attendre un modèle entraîné. Différentiels ambigus, contradictions et faible confiance restent inconnus ; pas de validation automatique.
 - [x] Estimer les rangées, les séparations réelles et le pas modulaire : 12 tests géométriques réussis sur les scénarios annotés, dont 8/13 modules, appareils larges, demi-modules, fond sombre, reflets, perspective rejetée et repère explicite de 18 mm. Intégration de la suppression du défaut 13 modules avec le parcours ci-dessous.
-- [ ] Fournir l'analyse automatique de la photo et de la rangée sur téléphone, avec progrès, annulation, conservation des corrections et validation humaine.
+- [x] Fournir l'analyse automatique de la photo, de la rangée ou d'une vignette sur téléphone, avec progrès, annulation effective, sauvegarde des lectures terminées et préservation des saisies humaines. La relecture peut améliorer une suggestion automatique moins confiante. Calibration tactile de 18 mm, reprise après annulation et absence de validation automatique vérifiées dans Chrome.
 - [ ] Tester sur les références annotées et publier la mise à jour GitHub Pages.
 - [ ] Recette réelle Android/iOS et photos de tableaux : segmentation, reflets, lisibilité, performances. Ne pas confondre les essais synthétiques avec une qualité attestée sur le terrain.
+
+Vérification de l'autonomie : 45 tests Node réussis. Recette Chrome : 6 contrôles initiaux, parcours manuel et liaison PC conservés ; puis serveurs web et PC de recette réellement fermés, réseau/cache HTTP désactivés, rechargement complet et 5 contrôles OCR embarqué + 5 contrôles de parcours automatique réussis. Le dessin annoté de 8 modules donne 6 PNG pleine résolution `[2,1,1,1,1,2]`, les marquages attendus et les propositions différentiel/disjoncteurs/contacteur, sans validation. Temps observé environ 1,3 à 2 s sur ce PC, aucune mesure de téléphone réel ni de précision métier. `/shared` inchangé.

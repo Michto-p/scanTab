@@ -1,0 +1,24 @@
+{
+  "synthetique": true,
+  "limites": "Dessin artificiel aux marquages lisibles. Vérifie le parcours autonome et ne mesure aucune reconnaissance sur photo réelle ; ne pas utiliser comme donnée d'apprentissage.",
+  "width": 1040,
+  "height": 720,
+  "moduleMillimeters": 18,
+  "pixelsPerModule": 100,
+  "rows": [{
+    "top": 150,
+    "bottom": 570,
+    "left": 120,
+    "right": 920,
+    "modules": 8,
+    "cuts": [0, 2, 3, 4, 5, 6, 8],
+    "devices": [
+      {"modules": 2, "famille": "interrupteur différentiel", "marque": "Hager", "calibre": "40 A", "sensibilite": "30 mA", "classe": "A", "poles": "2P"},
+      {"modules": 1, "famille": "disjoncteur", "marque": "Hager", "reference": "MFS716", "calibre": "16 A", "courbe": "C", "poles": "1P+N"},
+      {"modules": 1, "famille": "disjoncteur", "marque": "Hager", "reference": "MFS710", "calibre": "10 A", "courbe": "B", "poles": "1P+N"},
+      {"modules": 1, "famille": "disjoncteur", "marque": "Hager", "reference": "MFS720", "calibre": "20 A", "courbe": "C", "poles": "1P+N"},
+      {"modules": 1, "famille": "disjoncteur", "marque": "Hager", "reference": "MFS720", "calibre": "20 A", "courbe": "D", "poles": "1P+N"},
+      {"modules": 2, "famille": "contacteur", "marque": "Legrand", "calibre": "25 A"}
+    ]
+  }]
+}

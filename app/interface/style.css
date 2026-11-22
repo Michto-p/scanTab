@@ -84,6 +84,13 @@ legend { font-size: .9rem; font-weight: 600; padding: 0 .3rem; }
 .thumbnail.selected { outline: 3px solid var(--blue); outline-offset: 1px; }
 .thumbnail.validated { border-bottom: 4px solid #24744d; }
 .validation-note { color: #186344; font-size: .875rem; }
+.analysis-progress { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 1rem; padding: .8rem 1rem; background: #fff4da; border: 1px solid #e2b24b; border-radius: 8px; margin-bottom: 1rem; }
+.analysis-progress p { margin: 0; flex: 1; }
+.analysis-progress progress { width: 130px; accent-color: var(--blue); }
+.recognition-details { margin-top: 1rem; font-size: .875rem; }
+.recognition-details summary { cursor: pointer; color: var(--blue); }
+.recognition-details pre, #pc-ocr { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media(max-width:760px){.analysis-progress{flex-wrap:wrap;}.analysis-progress p{flex-basis:100%;}.analysis-progress progress{flex:1;}}
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (max-width: 1000px) { .session-bar { grid-template-columns: 1fr 1fr; } .workbench { grid-template-columns: minmax(0,1fr) 330px; } }
 @media (max-width: 760px) {

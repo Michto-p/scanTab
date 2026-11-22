@@ -5,6 +5,7 @@ import { createServer } from '../scripts/serve.mjs';
 import {createPCServer} from '../training/server.mjs';
 import {readManifests} from '../training/corpus.mjs';
 import {recognizeOCR,terminateOCR} from '../training/ocr.mjs';
+import {runMobileOCRBrowserTests,runAutonomousUIBrowserTests} from './mobile-browser.mjs';
 
 // Contrôle Chrome via son protocole natif, sans bibliothèque de test ajoutée.
 const profile = resolve('.local/browser-' + Date.now());
@@ -142,9 +143,16 @@ try {
   await call('Network.setCacheDisabled', {cacheDisabled:true});
   const requestsBeforeOffline=pcRequests;
   await call('Network.emulateNetworkConditions', {offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
+  // Ferme aussi les serveurs : un worker OCR ne peut pas contourner l'émulation CDP.
+  server.closeAllConnections();await new Promise(done=>server.close(done));
+  pcServer.closeAllConnections();await new Promise(done=>pcServer.close(done));
   await call('Page.reload');
   await until(() => evaluate(process.argv.includes('--shell') ? '!!document.querySelector("#workspace") && document.querySelector("#offline-status")?.textContent === "Disponible hors ligne"' : 'window.__scanTableauReady === true && !!document.querySelector("#workspace canvas")'));
   console.log('PASS : rechargement complet hors ligne, interface et modules disponibles.');
+  if(process.argv.includes('--mobile-ocr')){
+    console.log(JSON.stringify(await runMobileOCRBrowserTests({evaluate}),null,2));
+    console.log(JSON.stringify(await runAutonomousUIBrowserTests({evaluate}),null,2));
+  }
   if(pcRequests!==requestsBeforeOffline)throw Error('Reconnexion automatique au PC après rechargement');
   if(!process.argv.includes('--shell')){
     await evaluate(`document.querySelector('#saved-photos').selectedIndex=1`);await evaluate(`document.querySelector('[data-action="open"]').click()`);
@@ -162,7 +170,6 @@ try {
   await terminateOCR();
   socket?.close();
   processChrome.kill();
-  server.closeAllConnections();
-  server.close();
-  pcServer.closeAllConnections();pcServer.close();
+  if(server.listening){server.closeAllConnections();server.close();}
+  if(pcServer.listening){pcServer.closeAllConnections();pcServer.close();}
 }

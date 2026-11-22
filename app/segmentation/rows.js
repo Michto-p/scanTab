@@ -26,6 +26,6 @@ export function suggestRows(image) {
   let previous=-1;
   for(let i=0;i<active.length;i++){if(!active[i])continue;if(previous>=0&&i-previous-1<=gap)for(let j=previous+1;j<i;j++)active[j]=true;previous=i;}
   const rows=[],minimum=Math.max(12,height*.025),padding=Math.max(1,Math.round(height*.004));let start=-1;
-  for(let i=0;i<=active.length;i++){if(active[i]&&start===-1)start=i;if(!active[i]&&start!==-1){const top=Math.max(0,start*stepY-padding),bottom=Math.min(height,i*stepY+padding);if(bottom-top>=minimum)rows.push({top,bottom,left:0,right:width,modules:13,cuts:Array.from({length:14},(_,n)=>n)});start=-1;}}
+  for(let i=0;i<=active.length;i++){if(active[i]&&start===-1)start=i;if(!active[i]&&start!==-1){const top=Math.max(0,start*stepY-padding),bottom=Math.min(height,i*stepY+padding);if(bottom-top>=minimum)rows.push({top,bottom,left:0,right:width,modules:null,cuts:[],calibrationConfirmed:false});start=-1;}}
   return rows;
 }

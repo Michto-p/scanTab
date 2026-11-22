@@ -3,11 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Collecte locale de tableaux électriques, sans dépendance ni compilation",
+  "description": "Analyse et collecte hors ligne de tableaux électriques, OCR embarqué sans compilation",
   "scripts": {
     "start": "node scripts/serve.mjs",
     "start:pc": "node training/server.mjs",
     "test": "node --test tests/*.test.mjs",
-    "test:browser": "node tests/run-browser.mjs"
+    "test:browser": "node tests/run-browser.mjs",
+    "test:mobile": "node tests/run-browser.mjs --mobile-ocr",
+    "prepare:ocr": "node scripts/preparer-ocr.mjs"
   }
 }
