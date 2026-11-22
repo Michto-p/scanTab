@@ -22,7 +22,7 @@ Le découpage ci-dessous reprend le périmètre explicite du cahier des charges 
 - [x] Calibrer l'échelle modulaire (18 mm) et corriger les séparations au demi-module (nombre de modules explicitement confirmé par l'utilisateur).
 - [x] Découper les appareils en vignettes PNG pleine résolution (dimensions, jointures et modifications manuelles vérifiées sur le dessin annoté).
 - [x] Saisir, corriger et valider humainement les étiquettes, avec provenance et confiance explicites. Une modification retire immédiatement la validation ; les valeurs illisibles restent « inconnu ».
-- [ ] Conserver les séances, photos, vignettes et validations dans IndexedDB.
+- [x] Conserver les séances, photos, vignettes et validations dans IndexedDB (transaction atomique, Blobs, réouverture de la base et restauration après rechargement vérifiés dans Chrome).
 - [ ] Exporter un lot ZIP avec les vignettes PNG et `labels.json` conforme aux champs demandés.
 - [ ] Vérifier le parcours sur les photos de référence, le fonctionnement hors ligne et les navigateurs cibles.
 - [ ] Présenter le bilan de phase et attendre la validation avant la phase 2.
