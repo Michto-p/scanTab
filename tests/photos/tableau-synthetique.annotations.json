@@ -1,0 +1,61 @@
+{
+  "fixture": "tableau-synthetique.svg",
+  "synthetique": true,
+  "width": 720,
+  "height": 520,
+  "seance": "synthetique-001",
+  "tolerance_px": 6,
+  "rows": [
+    {
+      "top": 70,
+      "bottom": 220,
+      "left": 74,
+      "right": 646,
+      "modules": 13,
+      "cuts": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ]
+    },
+    {
+      "top": 300,
+      "bottom": 450,
+      "left": 74,
+      "right": 646,
+      "modules": 13,
+      "cuts": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ]
+    }
+  ],
+  "limites": [
+    "Dessin, pas une photo réelle.",
+    "Sans marquage ni reflet ; aucune famille annotée.",
+    "Interdit comme échantillon d’apprentissage réel."
+  ]
+}
