@@ -83,7 +83,7 @@ function renderPanel(){
   }else{
     const device=session.devices[selected];
     if(!device){panel.innerHTML='<p>Aucune vignette. Revenez au découpage.</p>';return;}
-    panel.innerHTML=`<div class="device-heading"><h2>Appareil ${selected+1} sur ${session.devices.length}</h2><span class="badge ${device.validatedAt?'validated':''}">${device.validatedAt?'Validé':'À vérifier'}</span></div><p class="hint">La collecte utilise la saisie manuelle. L’OCR et la reconnaissance automatique ne sont pas encore intégrés. Laissez « inconnu » si un marquage est illisible.</p><img class="device-preview" src="${thumbnailUrls[selected]}" alt="Vignette pleine résolution de l’appareil ${selected+1}"><div class="label-fields">${FIELDS.map(({key,label})=>`<label>${label}${key==='famille'?`<select data-label="${key}">${FAMILIES.map(f=>`<option ${device.labels[key].valeur===f?'selected':''}>${escape(f)}</option>`).join('')}</select>`:`<input data-label="${key}" value="${escape(device.labels[key].valeur)}" ${key==='modules'?'readonly':''}>`}</label>`).join('')}</div><p class="hint">Origine : saisie manuelle. Une valeur inconnue garde une confiance de 0 ; la validation atteste uniquement votre lecture.</p>${device.validatedAt?`<p class="validation-note">Validé par ${escape(device.validatedBy)} le ${new Date(device.validatedAt).toLocaleString('fr-FR')}.</p>`:''}<label class="validator-field">Validation par<input data-validator value="${escape(validator)}" maxlength="100" autocomplete="name"></label><div class="stack"><button class="primary" data-action="validate">Valider cet appareil</button>${device.validatedAt?'<button data-action="invalidate">Remettre à vérifier</button>':''}</div><div class="two-col navigation"><button data-action="previous" ${selected?'':'disabled'}>Précédent</button><button data-action="next" ${selected<session.devices.length-1?'':'disabled'}>Suivant</button></div>`;
+    panel.innerHTML=`<div class="device-heading"><h2>Appareil ${selected+1} sur ${session.devices.length}</h2><span class="badge ${device.validatedAt?'validated':''}">${device.validatedAt?'Validé':'À vérifier'}</span></div><p class="hint">Corrigez les champs ou demandez une analyse depuis le panneau PC. Laissez « inconnu » si un marquage est illisible.</p><img class="device-preview" src="${thumbnailUrls[selected]}" alt="Vignette pleine résolution de l’appareil ${selected+1}"><div class="label-fields">${FIELDS.map(({key,label})=>`<label>${label}${key==='famille'?`<select data-label="${key}">${FAMILIES.map(f=>`<option ${device.labels[key].valeur===f?'selected':''}>${escape(f)}</option>`).join('')}</select>`:`<input data-label="${key}" value="${escape(device.labels[key].valeur)}" ${key==='modules'?'readonly':''}>`}<small>${escape(device.labels[key].niveau)} · ${(device.labels[key].confiance*100).toFixed(0)} %</small></label>`).join('')}</div><p class="hint">Les scores automatiques sont indicatifs. La validation atteste votre lecture de chaque champ.</p>${device.validatedAt?`<p class="validation-note">Validé par ${escape(device.validatedBy)} le ${new Date(device.validatedAt).toLocaleString('fr-FR')}.</p>`:''}<label class="validator-field">Validation par<input data-validator value="${escape(validator)}" maxlength="100" autocomplete="name"></label><div class="stack"><button class="primary" data-action="validate">Valider cet appareil</button>${device.validatedAt?'<button data-action="invalidate">Remettre à vérifier</button>':''}</div><div class="two-col navigation"><button data-action="previous" ${selected?'':'disabled'}>Précédent</button><button data-action="next" ${selected<session.devices.length-1?'':'disabled'}>Suivant</button></div>`;
   }
 }
 function renderThumbs(){
@@ -151,16 +151,46 @@ async function crop(){
   session.devices=devices;session.rows=ordered;session.cutsDirty=false;session.cropDurationMs=Math.round(performance.now()-started);selected=0;step='labels';changed();await persist();message(`${devices.length} vignettes créées en ${(session.cropDurationMs/1000).toFixed(2)} s sur cet appareil. Vérifiez chaque vignette avant de valider.`);
 }
 async function validate(){const d=validateDevice(session.devices[selected],$('#validator').value);session.devices[selected]=d;changed();await persist();await refreshPhotos();message('Appareil validé. Toute correction ultérieure demandera une nouvelle validation.');}
-async function exportGroup(){
+export async function createCurrentBatch(){
+  if(busy)throw Error('Attendez la fin de l’opération de collecte en cours.');
+  if(!session)throw Error('Ouvrez une photo et validez ses appareils avant de les envoyer.');
+  const root=$('#workspace');busy=true;root.inert=true;root.setAttribute('aria-busy','true');
+  try{return await collectBatch();}finally{busy=false;root.inert=false;root.removeAttribute('aria-busy');render();}
+}
+export function currentAnalysisTarget(){
+  if(busy||!enabled('labels')||step!=='labels')throw Error('Sélectionnez une vignette à l’étape Valider.');
+  const device=session.devices[selected];
+  if(device.validatedAt)throw Error('Cet appareil est déjà validé. Remettez-le à vérifier avant de demander une analyse.');
+  return {sessionId:session.id,deviceId:device.id,revision,blob:device.blob};
+}
+export function applyPCAnalysis(target,result){
+  const device=session?.devices[selected];
+  if(!device||session.id!==target.sessionId||device.id!==target.deviceId||revision!==target.revision||device.validatedAt)throw Error('La photo ou les étiquettes ont changé pendant l’analyse. Résultat écarté ; relancez sur la vignette souhaitée.');
+  let count=0;
+  for(const {key}of FIELDS){
+    const field=result.champs?.[key];
+    if(key==='modules'||device.labels[key].valeur!=='inconnu'||!field||field.valeur==='inconnu')continue;
+    if(typeof field.valeur!=='string'||field.valeur.length>200||!Number.isFinite(field.confiance)||field.confiance<.8||field.confiance>1||!['ocr_reference','ocr_caracteristiques','classifieur'].includes(field.niveau)||(key==='famille'&&!FAMILIES.includes(field.valeur)))continue;
+    device.labels[key]={valeur:field.valeur,confiance:field.confiance,niveau:field.niveau};count++;
+  }
+  if(count){session.devices[selected]=invalidateDevice(device);changed();render();}
+  message(`${count} propositions ajoutées. Vérifiez les marquages et validez vous-même ; les champs illisibles restent inconnus.`);
+  return count;
+}
+async function collectBatch(){
   if(session.geometryDirty||session.cutsDirty)throw Error('Appliquez les changements de cadrage avant l’export.');
   let unsaved=false;try{await persist();}catch{unsaved=true;}
   const metadata=await listSessions();const photos=await Promise.all(metadata.filter(s=>s.seance===group&&s.id!==session.id).map(s=>loadSession(s.id)));
   if(photos.some(s=>!s))throw Error('Une photo de la séance a changé dans une autre fenêtre. Rechargez la liste avant de réessayer.');
   photos.push(session);
   if(photos.some(s=>(s.geometryDirty||s.cutsDirty)&&s.devices.some(d=>d.validatedAt)))throw Error('Une photo de cette séance a un cadrage modifié. Appliquez son découpage avant d’exporter la séance.');
-  const blob=await exportBatch({id:group,seance:group,devices:photos.flatMap(s=>s.devices)}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  const blob=await exportBatch({id:group,seance:group,devices:photos.flatMap(s=>s.devices)});
+  return {blob,seance:group,count:photos.reduce((n,s)=>n+s.devices.filter(d=>d.validatedAt).length,0),unsaved};
+}
+async function exportGroup(){
+  const {blob,count,unsaved}=await collectBatch(),url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download=`scan-tableau-${group.replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,100)}.zip`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
-  message(`ZIP préparé : ${photos.reduce((n,s)=>n+s.devices.filter(d=>d.validatedAt).length,0)} appareils validés de la séance. Les appareils à vérifier sont exclus.${unsaved?' Attention : la photo ouverte n’a pas pu être sauvegardée sur cet appareil.':''}`);
+  message(`ZIP préparé : ${count} appareils validés de la séance. Les appareils à vérifier sont exclus.${unsaved?' Attention : la photo ouverte n’a pas pu être sauvegardée sur cet appareil.':''}`);
 }
 
 function pointerCoordinates(event){const canvas=$('#photo-canvas'),r=canvas.getBoundingClientRect(),source=step==='perspective'?original:corrected;return {x:Math.max(0,Math.min(source.width,(event.clientX-r.left)/r.width*source.width)),y:Math.max(0,Math.min(source.height,(event.clientY-r.top)/r.height*source.height)),threshold:24/r.width*source.width};}

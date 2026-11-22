@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#164f91">
   <meta name="description" content="Photographier, découper et valider un tableau électrique. Vos données restent sur cet appareil.">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <!-- Les connexions HTTP(S) au PC sont contrôlées par le module de liaison locale. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self' https: http:; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/tableau.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icons/tableau-192.png">
@@ -20,8 +21,9 @@
   <main>
     <noscript>Activez JavaScript pour traiter les photos localement sur cet appareil.</noscript>
     <section id="workspace"><h1>Collecter un tableau</h1><p>Ouverture des outils locaux…</p></section>
+    <section id="pc-panel" aria-label="Liaison avec le PC"></section>
   </main>
-  <footer>CAP Électricien <span>Les photos restent sur cet appareil.</span></footer>
+  <footer>CAP Électricien <span>Collecte locale · Envoi au PC uniquement sur demande.</span></footer>
   <script type="module" src="./app.js"></script>
 </body>
 </html>

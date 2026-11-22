@@ -31,6 +31,13 @@ footer { padding: 1.25rem; border-top: 1px solid var(--line); display: flex; fle
 .session-options { margin-bottom: 1rem; }
 .session-options summary { cursor: pointer; padding: .7rem 0; color: var(--blue); font-weight: 600; }
 .validator-field { margin: 1rem 0; }
+#pc-panel { margin-top: 1.5rem; padding: 1rem; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+#pc-panel summary { color: var(--blue); font-weight: 600; cursor: pointer; padding: .4rem 0; }
+.pc-form { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: .75rem; align-items: end; }
+.pc-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+#pc-status { border-left: 3px solid var(--amber); padding-left: .75rem; }
+@media(max-width:1000px){.pc-form{grid-template-columns:1fr 1fr;}}
+@media(max-width:760px){.pc-form{grid-template-columns:1fr;}.pc-actions{display:grid;}}
 .hint { font-size: .875rem; color: var(--muted); line-height: 1.5; }
 .photo-library { display: flex; gap: .6rem; align-items: center; margin: 1rem 0; flex-wrap: wrap; }
 .photo-library select { flex: 1; min-width: 180px; max-width: 520px; }

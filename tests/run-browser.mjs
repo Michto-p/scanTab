@@ -2,6 +2,9 @@ import { spawn } from 'node:child_process';
 import { mkdir, readFile, writeFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createServer } from '../scripts/serve.mjs';
+import {createPCServer} from '../training/server.mjs';
+import {readManifests} from '../training/corpus.mjs';
+import {recognizeOCR,terminateOCR} from '../training/ocr.mjs';
 
 // Contrôle Chrome via son protocole natif, sans bibliothèque de test ajoutée.
 const profile = resolve('.local/browser-' + Date.now());
@@ -9,6 +12,16 @@ await mkdir(profile, { recursive: true });
 const server = createServer();
 await new Promise(done => server.listen(0, '127.0.0.1', done));
 const origin = `http://localhost:${server.address().port}`;
+const pcToken='code-appairage-synthetique-recette';
+const pcData=resolve('.local/pc-browser-'+Date.now());
+// Le serveur simulé vérifie l'interface sans prétendre fournir un modèle électrique.
+const pcServer=createPCServer({dataDirectory:pcData,token:pcToken,origins:[origin],engine:{
+  capabilities:{analysis:true,training:false},status:async()=>({model:null,message:'Moteur simulé de recette interface.'}),
+  analyze:async()=>({champs:{marque:{valeur:'Hager',confiance:.94,niveau:'ocr_caracteristiques'},calibre:{valeur:'32 A',confiance:.94,niveau:'ocr_caracteristiques'}},texte:'HAGER C32',limites:[]})
+}});
+await new Promise(done=>pcServer.listen(0,'127.0.0.1',done));
+const pcAddress='http://127.0.0.1:'+pcServer.address().port;
+let pcRequests=0;pcServer.on('request',req=>{if(req.url.startsWith('/api/'))pcRequests++;});
 const chrome = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const processChrome = spawn(chrome, ['--headless=new', '--disable-gpu', '--disable-background-networking', '--no-first-run', '--no-default-browser-check', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore', windowsHide: true });
 let socket;
@@ -45,6 +58,7 @@ try {
     if (result.status !== 'pass') throw Error('Échec des tests navigateur');
     await call('Page.navigate', { url: origin + '/app/' });
     await until(() => evaluate('window.__scanTableauReady === true && document.querySelector("#offline-status")?.textContent === "Disponible hors ligne"'));
+    if(pcRequests!==0)throw Error('Contact PC avant action explicite');
     // Parcours visible complet : correction manuelle, validation puis correction.
     const click=async selector=>evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
     const idle=()=>until(()=>evaluate('document.querySelector("#workspace").getAttribute("aria-busy") !== "true"'));
@@ -85,6 +99,30 @@ try {
     while(zipView.getUint32(position,true)===0x04034b50){const size=zipView.getUint32(position+18,true),length=zipView.getUint16(position+26,true),name=new TextDecoder().decode(zipBytes.slice(position+30,position+30+length)),start=position+30+length;if(name==='labels.json')records=JSON.parse(new TextDecoder().decode(zipBytes.slice(start,start+size)));position=start+size;}
     if(records?.length!==2||new Set(records.map(r=>r['séance'])).size!==1||!records.some(r=>r.calibre.valeur==='16'))throw Error('Regroupement de séance ou filtrage des validations incorrect');
     console.log('PASS : interface, demi-modules, invalidation après correction et ZIP de deux photos de la même séance.');
+    await evaluate(`(()=>{document.querySelector('#pc-panel details').open=true;document.querySelector('#pc-address').value=${JSON.stringify(pcAddress)};document.querySelector('#pc-token').value=${JSON.stringify(pcToken)};})()`);
+    await click('#pc-connect');
+    await until(()=>evaluate('document.querySelector("#pc-status").textContent.startsWith("PC connecté")')).catch(async error=>{throw Error(error.message+' · '+await evaluate('document.querySelector("#pc-status").textContent')+' · requêtes PC : '+pcRequests);});
+    await click('[data-action="invalidate"]');await idle();
+    await click('#pc-analyze');
+    await until(()=>evaluate('document.querySelector("#pc-status").textContent.startsWith("1 propositions")'));
+    if(!await evaluate('document.querySelector("[data-label=marque]").value === "Hager" && document.querySelector("[data-label=calibre]").value === "16" && document.querySelector(".badge").textContent === "À vérifier"'))throw Error('Analyse : saisie humaine remplacée ou validation automatique');
+    await evaluate(`(async()=>{const w=await import('/app/interface/workspace.js');const target=w.currentAnalysisTarget();document.querySelector('[data-label=marque]').dispatchEvent(new Event('input',{bubbles:true}));try{w.applyPCAnalysis(target,{champs:{}});throw Error('Résultat périmé accepté');}catch(error){if(!error.message.includes('ont changé'))throw error;}})()`);
+    await click('[data-action="validate"]');await idle();
+    console.log('PASS : propositions PC sans validation, saisies préservées et résultat périmé écarté.');
+    await click('#pc-send');
+    await until(()=>evaluate('document.querySelector("#pc-status").textContent.startsWith("Lot reçu")'));
+    const batches=await readManifests(pcData);
+    if(batches.length!==1||batches[0].samples.length!==2)throw Error('Le PC ne reçoit pas exactement les deux validations');
+    await click('#pc-prepare');
+    await until(()=>evaluate('document.querySelector("#pc-status").textContent.startsWith("Jeux préparés par séance")'));
+    console.log('PASS : appairage, CORS réel, envoi explicite des validations au PC et préparation du corpus.');
+    if(process.argv.includes('--ocr')){
+      const png=await evaluate(`(async()=>{const img=new Image();img.src='/tests/photos/ocr-marquages.svg';await img.decode();const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext('2d').drawImage(img,0,0);return c.toDataURL('image/png').split(',')[1];})()`);
+      const recognized=await recognizeOCR(Buffer.from(png,'base64'));
+      if(recognized.champs.marque.valeur!=='Hager'||recognized.champs.calibre.valeur!=='16 A'||recognized.champs.sensibilite.valeur!=='30 mA')throw Error('OCR réel sur marquages artificiels : '+JSON.stringify(recognized));
+      console.log('PASS : OCR Tesseract local réel sur tests/photos/ocr-marquages.svg, sans modèle de familles.');
+      await terminateOCR();
+    }
     await call('Page.reload',{ignoreCache:true});
     await until(()=>evaluate('window.__scanTableauReady === true && document.querySelectorAll("#saved-photos option").length > 1'));
     await evaluate(`document.querySelector('#saved-photos').value=${JSON.stringify(firstPhotoId)}`);await click('[data-action="open"]');await idle();
@@ -102,10 +140,12 @@ try {
   await call('Page.navigate', {url:origin+'/app/'});
   await until(() => evaluate('!!navigator.serviceWorker.controller && window.__scanTableauReady === true'));
   await call('Network.setCacheDisabled', {cacheDisabled:true});
+  const requestsBeforeOffline=pcRequests;
   await call('Network.emulateNetworkConditions', {offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
   await call('Page.reload');
   await until(() => evaluate(process.argv.includes('--shell') ? '!!document.querySelector("#workspace") && document.querySelector("#offline-status")?.textContent === "Disponible hors ligne"' : 'window.__scanTableauReady === true && !!document.querySelector("#workspace canvas")'));
   console.log('PASS : rechargement complet hors ligne, interface et modules disponibles.');
+  if(pcRequests!==requestsBeforeOffline)throw Error('Reconnexion automatique au PC après rechargement');
   if(!process.argv.includes('--shell')){
     await evaluate(`document.querySelector('#saved-photos').selectedIndex=1`);await evaluate(`document.querySelector('[data-action="open"]').click()`);
     await until(()=>evaluate('document.querySelector("#workspace").getAttribute("aria-busy") !== "true" && !!document.querySelector(".badge")'));
@@ -119,8 +159,10 @@ try {
   await writeFile(resolve('.local/recette-mobile.png'), Buffer.from(shot.data,'base64'));
   console.log('PASS : largeur mobile 390 px ; capture .local/recette-mobile.png');
 } finally {
+  await terminateOCR();
   socket?.close();
   processChrome.kill();
   server.closeAllConnections();
   server.close();
+  pcServer.closeAllConnections();pcServer.close();
 }
