@@ -2,14 +2,14 @@
 
 ## État au 22 novembre 2026
 
-Le dossier était vide à l'ouverture de la session. Les consignes reçues sont conservées dans `AGENTS.md`. Le fichier `CAHIER_DES_CHARGES.md` annoncé n'est pas présent. Son emplacement, ou l'utilisation du message initial comme cahier des charges, a été demandé à l'utilisateur.
+Le dossier était vide à l'ouverture de la session. Les consignes reçues sont conservées dans `AGENTS.md`. L'utilisateur a confirmé que son message initial fait foi pour la phase 1 ; il est enregistré dans `CAHIER_DES_CHARGES.md`.
 
-Le découpage ci-dessous est provisoire : il reprend uniquement le périmètre explicite du message initial et devra être rapproché du cahier des charges avant l'implémentation fonctionnelle.
+Le découpage ci-dessous reprend le périmètre explicite du cahier des charges confirmé. Aucune phase suivante ne sera engagée sans validation.
 
 ## Initialisation
 
 - [x] Conserver les consignes, créer l'arborescence demandée et initialiser Git.
-- [ ] Lire le cahier des charges complet, ou obtenir la confirmation que le message initial fait foi pour la phase 1.
+- [x] Lire le cahier des charges complet, ou obtenir la confirmation que le message initial fait foi pour la phase 1.
 
 ## Phase 1 – Collecte
 

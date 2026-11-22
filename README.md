@@ -8,7 +8,7 @@ Les consignes de travail sont dans [AGENTS.md](AGENTS.md), et le suivi dans [PRO
 
 Initialisation de l'arborescence. L'application n'est pas encore implémentée.
 
-Le fichier `CAHIER_DES_CHARGES.md` annoncé dans les consignes n'a pas été trouvé dans le dossier initial. Il reste à fournir son emplacement ou à confirmer que le message initial de l'utilisateur fait foi pour la phase 1.
+L'utilisateur a confirmé que son message initial fait foi pour la phase 1. Il est conservé dans [CAHIER_DES_CHARGES.md](CAHIER_DES_CHARGES.md).
 
 ## Organisation
 
