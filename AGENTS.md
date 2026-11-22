@@ -76,3 +76,7 @@ Phase 1 – Collecte : capture, redressement, rails, découpage modulaire avec c
 - Tester sur /tests/photos avant de cocher une tâche.
 - Signaler franchement les limites (photo floue, marquage illisible) plutôt que masquer l'incertitude.
 - Cibles : Chrome et Safari récents, Android et iOS ; moins de 5 s par rangée de 13 modules ; modèles embarqués sous 30 Mo.
+
+## Extension autorisée
+
+Le 22 novembre 2026, l'utilisateur a demandé la liaison d'une PWA GitHub Pages avec un serveur PC sur le réseau local. L'extension correspondante dans `CAHIER_DES_CHARGES.md` fait foi. Il a ensuite autorisé le moteur Python local (PyTorch, ONNX Runtime, Pillow, NumPy ; ONNX et torchvision accompagnent l'export et l'extracteur) et désigné le dépôt `Michto-p/scanTab`. Tesseract.js était déjà prévu. Ne pas présenter la préparation du corpus ni un test synthétique comme une reconnaissance réelle évaluée. Toute autre dépendance non prévue reste soumise à accord.

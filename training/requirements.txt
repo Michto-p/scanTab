@@ -1,0 +1,5 @@
+# Moteur CPU local ; aucun service d'IA distant.
+numpy==2.5.5
+Pillow==13.0.0
+onnx==1.23.2
+onnxruntime==1.32.0

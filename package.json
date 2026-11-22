@@ -6,6 +6,7 @@
   "description": "Collecte locale de tableaux électriques, sans dépendance ni compilation",
   "scripts": {
     "start": "node scripts/serve.mjs",
+    "start:pc": "node training/server.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:browser": "node tests/run-browser.mjs"
   }

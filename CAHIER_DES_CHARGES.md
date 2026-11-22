@@ -78,3 +78,19 @@ Phase 1 – Collecte : capture, redressement, rails, découpage modulaire avec c
 - Tester sur /tests/photos avant de cocher une tâche.
 - Signaler franchement les limites (photo floue, marquage illisible) plutôt que masquer l'incertitude.
 - Cibles : Chrome et Safari récents, Android et iOS ; moins de 5 s par rangée de 13 modules ; modèles embarqués sous 30 Mo.
+
+## Extension demandée le 22 novembre 2026 – liaison téléphone / PC
+
+L'utilisateur demande une PWA hébergée sur GitHub Pages et un serveur fonctionnant sur le PC, auquel le téléphone peut se connecter lorsqu'il est sur le même réseau local pour analyser les photos et enrichir le modèle.
+
+- GitHub Pages distribue les fichiers statiques de l'application ; les photos, étiquettes privées et codes d'appairage restent hors du dépôt et de l'hébergement.
+- Le serveur du PC est facultatif. La collecte, les corrections, la validation et l'export ZIP restent utilisables hors connexion sans ce serveur.
+- Une adresse locale et un code permettent l'appairage. Aucun balayage du réseau, aucun envoi automatique de photo et aucune API d'IA sur Internet.
+- L'analyse au PC et le transfert des validations sont des actions explicites. Seules les validations humaines alimentent le corpus d'apprentissage ; les prédictions restent à confirmer.
+- Le PC dédoublonne les images, conserve les séances et prépare les jeux par séance. Des doublons entre séances relient celles-ci pour éviter une fuite entre entraînement et test. Les étiquettes contradictoires sont exclues.
+- La liaison doit tenir compte de CORS, de l'autorisation d'accès au réseau local et, pour les configurations qui l'exigent, d'HTTPS avec un certificat reconnu par le téléphone.
+- Le moteur d'analyse et d'entraînement nécessite un modèle initial, des données et un accord pour toute dépendance non listée. Sans moteur, le serveur l'indique et ne prétend pas reconnaître ni entraîner.
+- Accord reçu : moteur Python CPU local avec PyTorch, ONNX Runtime, Pillow et NumPy, torchvision pour l'extracteur et ONNX pour l'export. Les installations et le téléchargement initial de l'extracteur sont explicites ; analyse et entraînement utilisent ensuite uniquement les fichiers locaux.
+- Dépôt choisi : `Michto-p/scanTab`. Publication statique de `app/`, données privées et installations dans `.local/` ignoré par Git.
+- La première version analyse une vignette sélectionnée explicitement. Elle propose les marquages par OCR et la famille si un modèle électrique a été entraîné. Elle ne remplace pas une saisie connue et ne valide jamais automatiquement.
+- Un candidat ONNX de moins de 30 Mo est évalué sur des séances réservées. Il remplace automatiquement le modèle local seulement si sa précision est au moins égale sur les mêmes familles et la même évaluation ; sinon il reste candidat. Un changement d'évaluation exige une revue.

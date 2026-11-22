@@ -39,3 +39,23 @@ Le découpage ci-dessous reprend le périmètre explicite du cahier des charges 
 - Aucun module Electracé n'a été fourni. `shared` reste vide ; aucune copie ni modification de ses modules n'est autorisée par défaut.
 - Aucune dépendance n'a été ajoutée et aucune donnée n'a été transmise à un service externe.
 - Les tâches fonctionnelles ne doivent être cochées qu'après leurs vérifications, dont les essais pertinents sur `tests/photos`.
+
+## Extension autorisée – serveur PC et GitHub Pages
+
+L'utilisateur a autorisé le moteur Python local et choisi `Michto-p/scanTab`. Cette extension ne clôt pas les essais terrain de phase 1 et ne lance pas la phase réglementaire.
+
+- [x] Recevoir les ZIP validés sur un serveur PC local appairé, avec origines CORS explicites et tailles bornées.
+- [x] Vérifier les PNG, dédoublonner par SHA-256, exclure les conflits et séparer les séances liées entre entraînement, validation et test.
+- [x] Installer Python, PyTorch CPU, torchvision, ONNX Runtime, ONNX, Pillow et NumPy dans `.local/` ; préparer explicitement l'extracteur visuel local.
+- [x] Implémenter l'entraînement d'une tête de familles et l'export ONNX : 12 tests Python réussis, dont entraînement et inférence ONNX réels sur corpus artificiel temporaire, sans candidat conservé en production.
+- [x] Refuser l'apprentissage sans validation humaine, sans séances disjointes ou sans exemples suffisants par famille ; protéger l'adoption contre une précision inférieure et un changement d'évaluation.
+- [x] Vérifier l'OCR local installé sur les marquages artificiels de `tests/photos` : Hager, 16 A et 30 mA reconnus par le vrai moteur Tesseract local.
+- [x] Relier l'analyse de vignette, l'envoi de séance et le suivi d'entraînement à l'interface ; vérifier dans Chrome les propositions sans validation automatique, les saisies préservées et les résultats périmés. Le suivi des travaux est testé avec moteur simulé ; l'export et l'inférence CPU sont testés séparément avec Python réel.
+- [ ] Publier `app/` sur GitHub Pages dans `Michto-p/scanTab` et vérifier l'adresse publique.
+- [ ] Essayer le téléphone réel sur le même Wi-Fi : autorisation réseau Chrome, pare-feu et HTTPS reconnu pour Safari.
+- [ ] Collecter plusieurs séances réelles validées, entraîner puis mesurer la reconnaissance sur des séances réservées. Aucun modèle électrique n'est encore adopté.
+- [ ] Fournir une publication et une inférence du modèle de familles sur téléphone ; pour cette extension, l'analyse automatique est effectuée sur le PC et la collecte reste hors ligne.
+
+Le modèle d'extraction ImageNet installé n'est pas un modèle de familles d'appareils électriques. Les anciennes mentions « sans dépendance » et « sans OCR » ci-dessus décrivent la livraison initiale ; l'extension ajoute des dépendances uniquement sur le PC. Aucun appel à une API d'IA distante.
+
+Validation de l'extension : 21 tests Node réussis ; 12 tests Python réussis, export ONNX réel inclus ; recette Chrome complète avec OCR local réel et rechargement hors ligne, sans contact PC implicite. La connexion d'un téléphone réel depuis GitHub Pages reste à vérifier.
