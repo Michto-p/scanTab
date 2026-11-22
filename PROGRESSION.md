@@ -15,8 +15,8 @@ Le découpage ci-dessous reprend le périmètre explicite du cahier des charges 
 
 - [x] Créer le socle PWA en modules ES : manifeste, service worker, ressources locales et disponibilité hors ligne.
 - [x] Implémenter l'import et l'entrée caméra native, en conservant l'original et sa pleine résolution. Import vérifié dans Chrome ; caméra physique à essayer lors de la recette terrain.
-- [ ] Afficher les limites de netteté et permettre le cadrage de la photo.
-- [ ] Redresser la perspective à partir de coins corrigibles par l'utilisateur.
+- [x] Afficher les limites de netteté et permettre le cadrage de la photo (estimation et image uniforme vérifiées dans Chrome).
+- [x] Redresser la perspective à partir de coins corrigibles par l'utilisateur (homographie, coins invalides et conservation des pixels vérifiés).
 - [ ] Repérer les rangées et rails DIN et permettre leur correction manuelle.
 - [ ] Calibrer l'échelle modulaire (18 mm) et corriger les séparations au demi-module.
 - [ ] Découper les appareils en vignettes pleine résolution.
