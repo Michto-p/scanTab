@@ -12,7 +12,7 @@ import sys
 from datetime import datetime, timezone
 from uuid import uuid4
 
-MAX_MODEL = 30 * 1024 * 1024
+MAX_MODEL = 30_000_000
 PREPROCESS = {"width": 224, "height": 224, "mode": "letterbox-blanc", "mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 
 
@@ -173,11 +173,11 @@ def adoption_reason(current, candidate):
 
 
 def train(root, epochs=80, min_train=3, min_eval=2):
+    rows, classes, fingerprint = dataset(root, min_train, min_eval)
     import numpy as np
     import torch
     from torch import nn
     from torchvision.models import mobilenet_v3_small
-    rows, classes, fingerprint = dataset(root, min_train, min_eval)
     backbone = root / "backbone/mobilenet_v3_small.pth"
     if not backbone.exists():
         raise ValueError("Extracteur absent. Exécutez d'abord la préparation explicite du moteur sur le PC.")

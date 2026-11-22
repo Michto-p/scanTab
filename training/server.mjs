@@ -89,7 +89,7 @@ export function createPCServer({dataDirectory,token,origins=[],tls=null,engine=n
   return server;
 }
 
-async function launch() {
+export async function launch() {
   const args=process.argv.slice(2),origins=[];let lan=false,port=8787,cert,key;
   for(let i=0;i<args.length;i++){
     if(args[i]==='--lan')lan=true;

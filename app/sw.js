@@ -1,4 +1,4 @@
-const CACHE = 'scan-tableau-v5';
+const CACHE = 'scan-tableau-v6';
 const ASSETS = ['./', './index.html', './app.js', './manifest.webmanifest', './interface/style.css', './icons/tableau.svg', './icons/tableau-192.png', './icons/tableau-512.png', './interface/workspace.js', './interface/pc-panel.js', './connexion/client.js', './interface/labels.js', './capture/photo.js', './pretraitement/geometry.js', './pretraitement/image.js', './segmentation/rows.js', './base/store.js', './exports/zip.js'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS))));
 self.addEventListener('activate', event => event.waitUntil((async () => {

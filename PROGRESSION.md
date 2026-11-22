@@ -51,7 +51,7 @@ L'utilisateur a autorisé le moteur Python local et choisi `Michto-p/scanTab`. C
 - [x] Refuser l'apprentissage sans validation humaine, sans séances disjointes ou sans exemples suffisants par famille ; protéger l'adoption contre une précision inférieure et un changement d'évaluation.
 - [x] Vérifier l'OCR local installé sur les marquages artificiels de `tests/photos` : Hager, 16 A et 30 mA reconnus par le vrai moteur Tesseract local.
 - [x] Relier l'analyse de vignette, l'envoi de séance et le suivi d'entraînement à l'interface ; vérifier dans Chrome les propositions sans validation automatique, les saisies préservées et les résultats périmés. Le suivi des travaux est testé avec moteur simulé ; l'export et l'inférence CPU sont testés séparément avec Python réel.
-- [ ] Publier `app/` sur GitHub Pages dans `Michto-p/scanTab` et vérifier l'adresse publique.
+- [x] Publier `app/` sur GitHub Pages dans `Michto-p/scanTab` et vérifier l'adresse publique : HTTP 200, déploiement Actions réussi, modules et service worker chargés depuis `/scanTab/`, puis rechargement complet hors ligne dans Chrome. Connexion réelle de cette page HTTPS au serveur PC HTTP local vérifiée dans Chrome de bureau avec permission réseau accordée.
 - [ ] Essayer le téléphone réel sur le même Wi-Fi : autorisation réseau Chrome, pare-feu et HTTPS reconnu pour Safari.
 - [ ] Collecter plusieurs séances réelles validées, entraîner puis mesurer la reconnaissance sur des séances réservées. Aucun modèle électrique n'est encore adopté.
 - [ ] Fournir une publication et une inférence du modèle de familles sur téléphone ; pour cette extension, l'analyse automatique est effectuée sur le PC et la collecte reste hors ligne.
@@ -59,3 +59,7 @@ L'utilisateur a autorisé le moteur Python local et choisi `Michto-p/scanTab`. C
 Le modèle d'extraction ImageNet installé n'est pas un modèle de familles d'appareils électriques. Les anciennes mentions « sans dépendance » et « sans OCR » ci-dessus décrivent la livraison initiale ; l'extension ajoute des dépendances uniquement sur le PC. Aucun appel à une API d'IA distante.
 
 Validation de l'extension : 21 tests Node réussis ; 12 tests Python réussis, export ONNX réel inclus ; recette Chrome complète avec OCR local réel et rechargement hors ligne, sans contact PC implicite. La connexion d'un téléphone réel depuis GitHub Pages reste à vérifier.
+
+Publication : https://michto-p.github.io/scanTab/ ; dépôt https://github.com/Michto-p/scanTab. Serveur installé et démarré sur ce poste, port 8787. `Demarrer-PC.cmd` permet de le lancer ou de réafficher l'adresse et le code s'il est déjà actif. Les données, modèles PC et codes sont exclus de Git.
+
+Essai du serveur installé avec le vrai sous-processus Python : création d'un travail, suivi authentifié, rejet du corpus vide et conservation de zéro image, zéro lot et aucun modèle électrique. Les tests ne constituent donc pas un apprentissage de production. À valider maintenant : collecte depuis un téléphone réel ; aucune phase suivante n'est engagée.

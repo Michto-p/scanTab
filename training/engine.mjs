@@ -10,6 +10,7 @@ const root=fileURLToPath(new URL('../',import.meta.url));
 export function pythonCall(directory,args,{timeout=120000,onProcess=()=>{}}={}){
   return new Promise((accept,reject)=>{
     const child=spawn(resolve(root,'.local/python/python.exe'),['-I','-X','utf8',resolve(root,'training/engine.py'),'--data-dir',resolve(directory),...args],{shell:false,windowsHide:true,env:{...process.env,PYTHONIOENCODING:'utf-8',TORCH_HOME:resolve(directory,'torch-cache')},stdio:['ignore','pipe','pipe']});
+    child.stdout.setEncoding('utf8');child.stderr.setEncoding('utf8');
     onProcess(child);let out='',err='',failure=null;
     const timer=setTimeout(()=>{failure=Error('Le travail Python a dépassé son délai maximal.');child.kill();},timeout);
     child.stdout.on('data',chunk=>{out+=chunk.toString('utf8');if(out.length>1024*1024){failure=Error('Réponse du moteur trop volumineuse.');child.kill();}});
