@@ -1,0 +1,12 @@
+{
+  "name": "scan-tableau",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Collecte locale de tableaux électriques, sans dépendance ni compilation",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/run-browser.mjs"
+  }
+}

@@ -1,0 +1,26 @@
+:root { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; color: #17283d; background: #edf2f6; font-size: 16px; --blue: #164f91; --line: #cbd5df; --muted: #53677c; --amber: #f4b544; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+a { color: var(--blue); }
+button, input, select { font: inherit; }
+button, .button { min-height: 44px; border: 1px solid var(--line); border-radius: 7px; padding: .65rem 1rem; background: #fff; color: #17283d; cursor: pointer; font-weight: 600; }
+button:hover { background: #edf3fa; }
+button:disabled { opacity: .5; cursor: default; }
+button.primary, .button.primary { color: #fff; border-color: var(--blue); background: var(--blue); }
+button.primary:hover { background: #103c72; }
+button.danger { color: #a22525; }
+:focus-visible { outline: 3px solid #e29a16; outline-offset: 3px; }
+input, select { width: 100%; min-height: 44px; border: 1px solid #a6b6c7; border-radius: 5px; padding: .55rem .65rem; color: #17283d; background: #fff; }
+input[type=checkbox] { width: 22px; min-height: 22px; }
+label { display: grid; gap: .35rem; font-size: .9rem; font-weight: 600; }
+h1 { margin: 0 0 .6rem; font-size: clamp(1.7rem, 3vw, 2.3rem); line-height: 1.15; letter-spacing: -.035em; }
+h2 { font-size: 1.2rem; margin: 0 0 .75rem; }
+h3 { font-size: 1rem; }
+p { line-height: 1.55; max-width: 72ch; }
+[hidden] { display: none !important; }
+.app-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; background: #fff; padding: 1rem max(1.25rem, calc((100vw - 1400px) / 2)); border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: .7rem; color: #17283d; text-decoration: none; font-size: 1.2rem; font-weight: 750; }
+.brand small { display: block; color: var(--muted); font-size: .85rem; font-weight: 400; margin-top: .1rem; }
+.offline-status { color: var(--muted); font-size: .875rem; text-align: right; max-width: 26ch; }
+main { max-width: 1440px; margin: auto; padding: 2rem 1.25rem; }
+footer { padding: 1.25rem; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; font-size: .875rem; color: var(--muted); }

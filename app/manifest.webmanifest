@@ -1,0 +1,13 @@
+{
+  "id": "./",
+  "name": "Scan Tableau",
+  "short_name": "Scan Tableau",
+  "description": "Collecte et validation locale de tableaux électriques",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#edf2f6",
+  "theme_color": "#164f91",
+  "icons": [{ "src": "./icons/tableau.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

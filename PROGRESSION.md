@@ -13,7 +13,7 @@ Le découpage ci-dessous reprend le périmètre explicite du cahier des charges 
 
 ## Phase 1 – Collecte
 
-- [ ] Créer le socle PWA en modules ES : manifeste, service worker, ressources locales et disponibilité hors ligne.
+- [x] Créer le socle PWA en modules ES : manifeste, service worker, ressources locales et disponibilité hors ligne.
 - [ ] Importer une photo et capturer une image par caméra en conservant la pleine résolution.
 - [ ] Afficher les limites de netteté et permettre le cadrage de la photo.
 - [ ] Redresser la perspective à partir de coins corrigibles par l'utilisateur.
@@ -28,6 +28,7 @@ Le découpage ci-dessous reprend le périmètre explicite du cahier des charges 
 
 ## Vérification et limites
 
+- Socle : 2 tests Node réussis ; recette Chrome sans interface réussie (rechargement réseau coupé, ressources du socle disponibles, absence de débordement à 390 px). Safari et les appareils physiques restent à vérifier.
 - Initialisation vérifiée : présence des 14 dossiers demandés, dépôt Git créé et dossier `shared` vide. Les essais photo ne s'appliquent pas à cette tâche d'initialisation.
 - Aucun corpus de photos n'a été fourni dans `tests/photos` ; aucune qualité de reconnaissance ni de segmentation ne peut être attestée.
 - Aucun module Electracé n'a été fourni. `shared` reste vide ; aucune copie ni modification de ses modules n'est autorisée par défaut.

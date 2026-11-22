@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#164f91">
+  <meta name="description" content="Photographier, découper et valider un tableau électrique. Vos données restent sur cet appareil.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/tableau.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./interface/style.css">
+  <title>Scan Tableau · Atelier de collecte</title>
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand" href="./" aria-label="Scan Tableau, accueil"><img src="./icons/tableau.svg" alt="" width="40" height="40"><span>Scan Tableau<small>Atelier de collecte</small></span></a>
+    <span id="offline-status" class="offline-status" role="status">Préparation du mode hors ligne…</span>
+  </header>
+  <main>
+    <noscript>Activez JavaScript pour traiter les photos localement sur cet appareil.</noscript>
+    <section id="workspace"><h1>Collecter un tableau</h1><p>Le socle local est prêt. Les outils de collecte sont en cours d'installation.</p></section>
+  </main>
+  <footer>CAP Électricien <span>Les photos restent sur cet appareil.</span></footer>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

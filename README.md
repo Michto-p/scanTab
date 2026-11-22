@@ -6,7 +6,7 @@ Les consignes de travail sont dans [AGENTS.md](AGENTS.md), et le suivi dans [PRO
 
 ## État du projet
 
-Initialisation de l'arborescence. L'application n'est pas encore implémentée.
+Socle PWA local initialisé ; fonctionnalités de collecte en cours d'implémentation.
 
 L'utilisateur a confirmé que son message initial fait foi pour la phase 1. Il est conservé dans [CAHIER_DES_CHARGES.md](CAHIER_DES_CHARGES.md).
 
@@ -19,3 +19,20 @@ L'utilisateur a confirmé que son message initial fait foi pour la phase 1. Il e
 - `tests/photos/` : corpus de photos de référence et résultats attendus, à fournir.
 
 L'application devra fonctionner hors ligne après le premier chargement. Les ressources et les modèles seront servis localement, et les données resteront sur l'appareil sauf export demandé par l'utilisateur.
+
+## Lancement local
+
+Node.js 24 ou récent suffit, sans installation de bibliothèque :
+
+```sh
+node scripts/serve.mjs
+```
+
+Ouvrir `http://localhost:8080/app/`. Attendre la mention « Disponible hors ligne » avant de couper la connexion. Un fichier ouvert directement par `file://` ne permet pas le service worker.
+
+```sh
+node --test tests/*.test.mjs
+node tests/run-browser.mjs --shell
+```
+
+La recette navigateur utilise Chrome installé sur Windows ; `CHROME_PATH` permet de désigner un autre exécutable Chromium. Pour un téléphone, servir les fichiers de `app/` en HTTPS : une adresse HTTP du PC sur le réseau local ne suffit pas pour la caméra et le service worker.
