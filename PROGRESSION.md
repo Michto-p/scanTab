@@ -17,9 +17,10 @@ Le découpage ci-dessous reprend le périmètre explicite du cahier des charges 
 - [x] Implémenter l'import et l'entrée caméra native, en conservant l'original et sa pleine résolution. Import vérifié dans Chrome ; caméra physique à essayer lors de la recette terrain.
 - [x] Afficher les limites de netteté et permettre le cadrage de la photo (estimation et image uniforme vérifiées dans Chrome).
 - [x] Redresser la perspective à partir de coins corrigibles par l'utilisateur (homographie, coins invalides et conservation des pixels vérifiés).
-- [ ] Repérer les rangées et rails DIN et permettre leur correction manuelle.
-- [ ] Calibrer l'échelle modulaire (18 mm) et corriger les séparations au demi-module.
-- [ ] Découper les appareils en vignettes pleine résolution.
+- [x] Proposer les rangées par contraste et permettre leur correction manuelle ; deux bandes du dessin annoté correctement proposées, fond uniforme sans proposition.
+- [ ] Vérifier et compléter le repérage des rails DIN sur des photos réelles. L'heuristique livrée propose des bandes d'appareils et ne localise pas un rail masqué.
+- [x] Calibrer l'échelle modulaire (18 mm) et corriger les séparations au demi-module (nombre de modules explicitement confirmé par l'utilisateur).
+- [x] Découper les appareils en vignettes PNG pleine résolution (dimensions, jointures et modifications manuelles vérifiées sur le dessin annoté).
 - [ ] Saisir, corriger et valider humainement les étiquettes, avec provenance et confiance explicites.
 - [ ] Conserver les séances, photos, vignettes et validations dans IndexedDB.
 - [ ] Exporter un lot ZIP avec les vignettes PNG et `labels.json` conforme aux champs demandés.
