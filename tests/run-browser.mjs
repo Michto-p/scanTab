@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createServer } from '../scripts/serve.mjs';
 
@@ -10,11 +10,10 @@ const server = createServer();
 await new Promise(done => server.listen(0, '127.0.0.1', done));
 const origin = `http://localhost:${server.address().port}`;
 const chrome = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
-const processChrome = spawn(chrome, ['--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore', windowsHide: true });
+const processChrome = spawn(chrome, ['--headless=new', '--disable-gpu', '--disable-background-networking', '--no-first-run', '--no-default-browser-check', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore', windowsHide: true });
 let socket;
 const sleep = ms => new Promise(done => setTimeout(done, ms));
-const deadline = Date.now() + 45000;
-async function until(fn) { while (Date.now() < deadline) { const result = await fn(); if (result) return result; await sleep(150); } throw Error('Délai de recette navigateur dépassé'); }
+async function until(fn) { const deadline=Date.now()+30000; while (Date.now() < deadline) { const result = await fn(); if (result) return result; await sleep(150); } throw Error('Délai de recette navigateur dépassé'); }
 let processError;
 processChrome.on('error', error => { processError = error; });
 try {
@@ -46,12 +45,73 @@ try {
     if (result.status !== 'pass') throw Error('Échec des tests navigateur');
     await call('Page.navigate', { url: origin + '/app/' });
     await until(() => evaluate('window.__scanTableauReady === true && document.querySelector("#offline-status")?.textContent === "Disponible hors ligne"'));
+    // Parcours visible complet : correction manuelle, validation puis correction.
+    const click=async selector=>evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
+    const idle=()=>until(()=>evaluate('document.querySelector("#workspace").getAttribute("aria-busy") !== "true"'));
+    await evaluate(`(async()=>{const blob=await (await fetch('/tests/photos/tableau-synthetique.svg')).blob();const dt=new DataTransfer();dt.items.add(new File([blob],'tableau.svg',{type:'image/svg+xml'}));const input=document.querySelector('#import-file');input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+    await idle();
+    if(!await evaluate('document.querySelector("#photo-info").textContent.includes("720 × 520")'))throw Error('Import dans l’interface incomplet');
+    await click('[data-step="perspective"]');
+    await click('[data-action="rectify"]');await idle();
+    await click('[data-action="suggest"]');await idle();
+    const rowCount=await evaluate('document.querySelectorAll(".row-editor").length');
+    if(rowCount!==2)throw Error('Proposition des deux rangées perdue dans l’interface');
+    await evaluate(`(()=>{const change=(selector,value,type='input')=>{const node=document.querySelector(selector);node.value=value;node.dispatchEvent(new Event(type,{bubbles:true}));};for(let i=0;i<2;i++){for(const [bound,value]of Object.entries({top:(i?300:70)/520*100,bottom:(i?450:220)/520*100,left:74/720*100,right:646/720*100}))change('[data-row="'+i+'"][data-bound="'+bound+'"]',value);}change('[data-row="0"][data-cuts]','0.5; 2; 4','change');})()`);
+    await click('[data-action="crop"]');await idle();
+    if(!await evaluate('document.querySelector("#summary").textContent.startsWith("17 appareils")'))throw Error('Séparations manuelles ignorées');
+    console.log('Découpage synthétique :',await evaluate('document.querySelector("#message").textContent'));
+    await evaluate(`(()=>{const family=document.querySelector('[data-label="famille"]');family.value='disjoncteur';family.dispatchEvent(new Event('input',{bubbles:true}));const validator=document.querySelector('[data-validator]');validator.value='Recette Chrome';validator.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    await click('[data-action="validate"]');await idle();
+    const firstPhotoId=await evaluate('document.querySelector("#saved-photos").value');
+    // Une seconde photo prise dans la même séance doit rejoindre le même lot.
+    await evaluate(`(async()=>{const blob=await (await fetch('/tests/photos/tableau-synthetique.svg')).blob();const dt=new DataTransfer();dt.items.add(new File([blob],'autre-photo.svg',{type:'image/svg+xml'}));const input=document.querySelector('#import-file');input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));})()`);await idle();
+    await click('[data-step="perspective"]');await click('[data-action="rectify"]');await idle();
+    await click('[data-action="add-row"]');await idle();
+    await evaluate(`(()=>{const input=document.querySelector('[data-row="0"][data-modules]');input.value='1';input.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+    await click('[data-action="crop"]');await idle();
+    await evaluate(`(()=>{const input=document.querySelector('[data-label="famille"]');input.value='contacteur';input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    await click('[data-action="validate"]');await idle();
+    if(!await evaluate('document.querySelector(".badge").textContent === "Validé"'))throw Error('Validation humaine non conservée');
+    await evaluate(`(()=>{const input=document.querySelector('[data-label="calibre"]');input.value='16';input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    if(!await evaluate('document.querySelector(".badge").textContent === "À vérifier" && document.querySelector("#summary").textContent.includes("0 validés")'))throw Error('Correction non invalidante');
+    await click('[data-action="validate"]');await idle();
+    const correctedPhotoId=await evaluate('document.querySelector("#saved-photos").value');
+    const downloadPath=resolve('.local/qa-downloads-'+Date.now());await mkdir(downloadPath,{recursive:true});
+    await call('Browser.setDownloadBehavior',{behavior:'allow',downloadPath});
+    await click('#export');await idle();
+    const archive=await until(async()=>{const files=await readdir(downloadPath);return files.find(file=>file.endsWith('.zip'));});
+    await writeFile(resolve('.local/qa-export.zip'),await readFile(resolve(downloadPath,archive)));
+    const zipBytes=new Uint8Array(await readFile(resolve(downloadPath,archive))),zipView=new DataView(zipBytes.buffer);let position=0,records;
+    while(zipView.getUint32(position,true)===0x04034b50){const size=zipView.getUint32(position+18,true),length=zipView.getUint16(position+26,true),name=new TextDecoder().decode(zipBytes.slice(position+30,position+30+length)),start=position+30+length;if(name==='labels.json')records=JSON.parse(new TextDecoder().decode(zipBytes.slice(start,start+size)));position=start+size;}
+    if(records?.length!==2||new Set(records.map(r=>r['séance'])).size!==1||!records.some(r=>r.calibre.valeur==='16'))throw Error('Regroupement de séance ou filtrage des validations incorrect');
+    console.log('PASS : interface, demi-modules, invalidation après correction et ZIP de deux photos de la même séance.');
+    await call('Page.reload',{ignoreCache:true});
+    await until(()=>evaluate('window.__scanTableauReady === true && document.querySelectorAll("#saved-photos option").length > 1'));
+    await evaluate(`document.querySelector('#saved-photos').value=${JSON.stringify(firstPhotoId)}`);await click('[data-action="open"]');await idle();
+    if(!await evaluate('document.querySelector(".badge").textContent === "Validé" && document.querySelector("[data-label=famille]").value === "disjoncteur"'))throw Error('Restauration de la première photo incomplète');
+    await evaluate(`document.querySelector('#saved-photos').value=${JSON.stringify(correctedPhotoId)}`);await click('[data-action="open"]');await idle();
+    if(!await evaluate('document.querySelector(".badge").textContent === "Validé" && document.querySelector("[data-label=calibre]").value === "16"'))throw Error('Restauration des corrections incomplète');
+    console.log('PASS : photo, vignettes et validation restaurées après rechargement.');
+    // Génération explicite des icônes seulement, jamais pendant une recette ordinaire.
+    for(const size of process.argv.includes('--icons')?[192,512]:[]){
+      const data=await evaluate(`(async()=>{const img=new Image();img.src='./icons/tableau.svg';await img.decode();const c=document.createElement('canvas');c.width=${size};c.height=${size};c.getContext('2d').drawImage(img,0,0,${size},${size});return c.toDataURL('image/png').split(',')[1];})()`);
+      await writeFile(resolve('app/icons/tableau-'+size+'.png'),Buffer.from(data,'base64'));
+    }
   }
-  await until(() => evaluate('!!navigator.serviceWorker.controller'));
+  // Une navigation ordinaire reprend le contrôle après un éventuel rechargement forcé.
+  await call('Page.navigate', {url:origin+'/app/'});
+  await until(() => evaluate('!!navigator.serviceWorker.controller && window.__scanTableauReady === true'));
+  await call('Network.setCacheDisabled', {cacheDisabled:true});
   await call('Network.emulateNetworkConditions', {offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
-  await call('Page.reload', {ignoreCache:true});
+  await call('Page.reload');
   await until(() => evaluate(process.argv.includes('--shell') ? '!!document.querySelector("#workspace") && document.querySelector("#offline-status")?.textContent === "Disponible hors ligne"' : 'window.__scanTableauReady === true && !!document.querySelector("#workspace canvas")'));
   console.log('PASS : rechargement complet hors ligne, interface et modules disponibles.');
+  if(!process.argv.includes('--shell')){
+    await evaluate(`document.querySelector('#saved-photos').selectedIndex=1`);await evaluate(`document.querySelector('[data-action="open"]').click()`);
+    await until(()=>evaluate('document.querySelector("#workspace").getAttribute("aria-busy") !== "true" && !!document.querySelector(".badge")'));
+    const desktop=await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});await writeFile(resolve('.local/recette-collecte.png'),Buffer.from(desktop.data,'base64'));
+    console.log('PASS : restauration d’une collecte existante hors ligne.');
+  }
   await call('Emulation.setDeviceMetricsOverride', { width:390, height:844, deviceScaleFactor:1, mobile:true });
   const overflow = await evaluate('document.documentElement.scrollWidth > innerWidth');
   if (overflow) throw Error('Débordement horizontal à 390 px');

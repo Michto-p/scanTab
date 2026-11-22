@@ -1,0 +1,6 @@
+# Conserver les sources en UTF-8 avec des fins de ligne LF, y compris sur Windows.
+* text=auto eol=lf
+*.png -text
+*.onnx -text
+*.wasm -text
+*.zip -text

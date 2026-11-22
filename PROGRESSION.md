@@ -24,12 +24,16 @@ Le découpage ci-dessous reprend le périmètre explicite du cahier des charges 
 - [x] Saisir, corriger et valider humainement les étiquettes, avec provenance et confiance explicites. Une modification retire immédiatement la validation ; les valeurs illisibles restent « inconnu ».
 - [x] Conserver les séances, photos, vignettes et validations dans IndexedDB (transaction atomique, Blobs, réouverture de la base et restauration après rechargement vérifiés dans Chrome).
 - [x] Exporter un lot ZIP avec les vignettes PNG et `labels.json` conforme aux champs demandés ; seules les validations humaines sont exportées, y compris pour plusieurs photos d'une même séance.
-- [ ] Vérifier le parcours sur les photos de référence, le fonctionnement hors ligne et les navigateurs cibles.
-- [ ] Présenter le bilan de phase et attendre la validation avant la phase 2.
+- [x] Vérifier le parcours sur le dessin annoté dans Chrome, le regroupement de séance et le fonctionnement hors ligne.
+- [ ] Faire la recette sur photos réelles et appareils cibles : caméra, orientation EXIF, Chrome Android, Safari iOS, installation PWA et moins de 5 s par rangée de 13 modules.
+- [x] Présenter le bilan de livraison et s'arrêter pour revue, sans engager la phase 2. La phase 1 reste ouverte pour les deux tâches terrain ci-dessus.
 
 ## Vérification et limites
 
-- Socle : 2 tests Node réussis ; recette Chrome sans interface réussie (rechargement réseau coupé, ressources du socle disponibles, absence de débordement à 390 px). Safari et les appareils physiques restent à vérifier.
+- Tests : 11 tests Node réussis et 6 contrôles image/données dans Chrome. Parcours d'interface vérifié : redressement, modification des limites et séparations, 17 vignettes, validation, invalidation lors d'une correction, ZIP de deux photos d'une séance, restauration des deux photos, puis rechargement réseau et cache HTTP coupés et ouverture d'une collecte sauvegardée. Aucun débordement horizontal à 390 px.
+- Sur le dessin 720 × 520, 17 vignettes ont été créées en environ 0,01 s sur ce PC ; cette mesure ne permet pas de conclure sur des photos haute résolution ni sur les téléphones cibles.
+- Le ZIP téléchargé a aussi été ouvert avec le lecteur ZIP .NET de Windows. Les tests vérifient les CRC, offsets du répertoire central, champs français, UUID distincts, séance commune, marquages corrigés et filtrage des validations.
+- Fragilités : propositions par contraste à confirmer, rails physiques non localisés, netteté seulement estimée, mémoire des grandes images non évaluée sur mobile. Aucun OCR ni modèle n'est intégré à la collecte manuelle.
 - Initialisation vérifiée : présence des 14 dossiers demandés, dépôt Git créé et dossier `shared` vide. Les essais photo ne s'appliquent pas à cette tâche d'initialisation.
 - Un dessin synthétique annoté a été ajouté dans `tests/photos` pour tester les calculs. Aucun corpus de photos réelles n'a été fourni ; aucune qualité de reconnaissance ni de segmentation en conditions réelles ne peut être attestée.
 - Aucun module Electracé n'a été fourni. `shared` reste vide ; aucune copie ni modification de ses modules n'est autorisée par défaut.

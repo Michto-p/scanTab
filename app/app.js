@@ -1,3 +1,5 @@
+import {mountWorkspace} from './interface/workspace.js';
+await mountWorkspace();
 const status = document.querySelector('#offline-status');
 if ('serviceWorker' in navigator && window.isSecureContext) {
   navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(async registration => {
