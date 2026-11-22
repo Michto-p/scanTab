@@ -21,7 +21,7 @@ Le découpage ci-dessous reprend le périmètre explicite du cahier des charges 
 - [ ] Vérifier et compléter le repérage des rails DIN sur des photos réelles. L'heuristique livrée propose des bandes d'appareils et ne localise pas un rail masqué.
 - [x] Calibrer l'échelle modulaire (18 mm) et corriger les séparations au demi-module (nombre de modules explicitement confirmé par l'utilisateur).
 - [x] Découper les appareils en vignettes PNG pleine résolution (dimensions, jointures et modifications manuelles vérifiées sur le dessin annoté).
-- [ ] Saisir, corriger et valider humainement les étiquettes, avec provenance et confiance explicites.
+- [x] Saisir, corriger et valider humainement les étiquettes, avec provenance et confiance explicites. Une modification retire immédiatement la validation ; les valeurs illisibles restent « inconnu ».
 - [ ] Conserver les séances, photos, vignettes et validations dans IndexedDB.
 - [ ] Exporter un lot ZIP avec les vignettes PNG et `labels.json` conforme aux champs demandés.
 - [ ] Vérifier le parcours sur les photos de référence, le fonctionnement hors ligne et les navigateurs cibles.
