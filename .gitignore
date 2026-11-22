@@ -1,0 +1,11 @@
+# Fichiers locaux et temporaires
+.DS_Store
+Thumbs.db
+*.log
+.local/
+.cache/
+
+# Environnements éventuels de développement et d'entraînement
+node_modules/
+__pycache__/
+.venv/
