@@ -68,8 +68,8 @@ Essai du serveur installé avec le vrai sous-processus Python : création d'un t
 
 Correction explicite de l'utilisateur : fournir le travail de base embarqué avant la collecte de données, le PC étant facultatif.
 
-- [ ] Embarquer Tesseract.js et ses langues localement, avec cache complet et test OCR réel réseau et cache HTTP coupés.
-- [ ] Extraire les marquages et proposer les familles par règles prudentes et provenance distincte, sans attendre un modèle entraîné.
+- [x] Embarquer Tesseract.js 7.0.0 et ses langues localement (17,14 Mo, SHA-256 et licences), avec cache complet : OCR réel vérifié après coupure réseau/cache HTTP et fermeture effective des serveurs web et PC.
+- [x] Extraire les marquages et proposer les familles par règles prudentes de provenance `regles_ocr`, sans attendre un modèle entraîné. Différentiels ambigus, contradictions et faible confiance restent inconnus ; pas de validation automatique.
 - [x] Estimer les rangées, les séparations réelles et le pas modulaire : 12 tests géométriques réussis sur les scénarios annotés, dont 8/13 modules, appareils larges, demi-modules, fond sombre, reflets, perspective rejetée et repère explicite de 18 mm. Intégration de la suppression du défaut 13 modules avec le parcours ci-dessous.
 - [ ] Fournir l'analyse automatique de la photo et de la rangée sur téléphone, avec progrès, annulation, conservation des corrections et validation humaine.
 - [ ] Tester sur les références annotées et publier la mise à jour GitHub Pages.
