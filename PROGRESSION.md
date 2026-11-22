@@ -63,3 +63,14 @@ Validation de l'extension : 21 tests Node réussis ; 12 tests Python réussis, e
 Publication : https://michto-p.github.io/scanTab/ ; dépôt https://github.com/Michto-p/scanTab. Serveur installé et démarré sur ce poste, port 8787. `Demarrer-PC.cmd` permet de le lancer ou de réafficher l'adresse et le code s'il est déjà actif. Les données, modèles PC et codes sont exclus de Git.
 
 Essai du serveur installé avec le vrai sous-processus Python : création d'un travail, suivi authentifié, rejet du corpus vide et conservation de zéro image, zéro lot et aucun modèle électrique. Les tests ne constituent donc pas un apprentissage de production. À valider maintenant : collecte depuis un téléphone réel ; aucune phase suivante n'est engagée.
+
+## Priorité active – analyse autonome sur téléphone
+
+Correction explicite de l'utilisateur : fournir le travail de base embarqué avant la collecte de données, le PC étant facultatif.
+
+- [ ] Embarquer Tesseract.js et ses langues localement, avec cache complet et test OCR réel réseau et cache HTTP coupés.
+- [ ] Extraire les marquages et proposer les familles par règles prudentes et provenance distincte, sans attendre un modèle entraîné.
+- [x] Estimer les rangées, les séparations réelles et le pas modulaire : 12 tests géométriques réussis sur les scénarios annotés, dont 8/13 modules, appareils larges, demi-modules, fond sombre, reflets, perspective rejetée et repère explicite de 18 mm. Intégration de la suppression du défaut 13 modules avec le parcours ci-dessous.
+- [ ] Fournir l'analyse automatique de la photo et de la rangée sur téléphone, avec progrès, annulation, conservation des corrections et validation humaine.
+- [ ] Tester sur les références annotées et publier la mise à jour GitHub Pages.
+- [ ] Recette réelle Android/iOS et photos de tableaux : segmentation, reflets, lisibilité, performances. Ne pas confondre les essais synthétiques avec une qualité attestée sur le terrain.

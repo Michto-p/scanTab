@@ -1,0 +1,10 @@
+{
+  "synthetique": true,
+  "limites": "Scènes raster artificielles ; aucun score de reconnaissance sur photo réelle ni donnée d'apprentissage.",
+  "scenes": [
+    { "nom": "huit-modules-appareils-larges", "width": 520, "height": 320, "pitch": 40, "left": 90, "rows": [{ "top": 75, "bottom": 245, "widths": [2, 1, 1, 1, 1, 2] }] },
+    { "nom": "treize-modules-deux-rangees-reflets", "width": 720, "height": 530, "pitch": 42, "left": 85, "noise": 4, "reflection": true, "rows": [{ "top": 55, "bottom": 235, "widths": [2, 1, 1, 1, 1, 1, 1, 1, 4] }, { "top": 300, "bottom": 480, "widths": [1, 1, 2, 1, 1, 1, 1, 2, 1, 1, 1] }] },
+    { "nom": "demi-modules", "width": 600, "height": 320, "pitch": 40, "left": 100, "rows": [{ "top": 65, "bottom": 240, "widths": [1, 1, 0.5, 0.5, 2, 1, 1, 2] }] },
+    { "nom": "largeurs-ambigues", "width": 560, "height": 320, "pitch": 40, "left": 80, "ambiguous": true, "rows": [{ "top": 70, "bottom": 245, "widths": [2, 2, 2, 2, 2] }] }
+  ]
+}

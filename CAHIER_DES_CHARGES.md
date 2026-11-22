@@ -94,3 +94,13 @@ L'utilisateur demande une PWA hébergée sur GitHub Pages et un serveur fonction
 - Dépôt choisi : `Michto-p/scanTab`. Publication statique de `app/`, données privées et installations dans `.local/` ignoré par Git.
 - La première version analyse une vignette sélectionnée explicitement. Elle propose les marquages par OCR et la famille si un modèle électrique a été entraîné. Elle ne remplace pas une saisie connue et ne valide jamais automatiquement.
 - Un candidat ONNX de moins de 30 Mo est évalué sur des séances réservées. Il remplace automatiquement le modèle local seulement si sa précision est au moins égale sur les mêmes familles et la même évaluation ; sinon il reste candidat. Un changement d'évaluation exige une revue.
+
+## Priorité corrigée par l'utilisateur – autonomie sur téléphone
+
+Le 22 novembre 2026, l'utilisateur précise que le travail de base doit fonctionner dès maintenant sur le téléphone, sans PC et sans attendre la collecte de données : mise à l'échelle modulaire, découpage et lecture des appareils. Le PC reste un complément pour l'apprentissage ultérieur.
+
+- Embarquer Tesseract.js, son moteur et ses langues dans la PWA et son cache hors ligne. Aucun CDN ni appel au PC pour cette analyse.
+- Proposer un parcours automatique depuis la photo, avec rangées, séparations de façades, estimation du pas modulaire et lecture OCR ; conserver les corrections manuelles et les PNG pleine résolution.
+- Un module vaut 18 mm. La conversion pixels/mm demande une estimation visuelle du pas répété ou un repère calibré ; ne jamais fixer arbitrairement 13 modules ni présenter cette estimation comme une mesure physique certaine.
+- Des règles explicites sur les marquages peuvent proposer une famille avant l'entraînement d'un réseau ; leur provenance est `regles_ocr`, jamais `classifieur`. Les ambiguïtés et faibles scores restent inconnus, aucune proposition n'est validée automatiquement.
+- La collecte de données et l'amélioration par modèle viendront ensuite ; elles ne doivent pas bloquer les fonctions de base embarquées.

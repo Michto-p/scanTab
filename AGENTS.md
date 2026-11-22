@@ -80,3 +80,5 @@ Phase 1 – Collecte : capture, redressement, rails, découpage modulaire avec c
 ## Extension autorisée
 
 Le 22 novembre 2026, l'utilisateur a demandé la liaison d'une PWA GitHub Pages avec un serveur PC sur le réseau local. L'extension correspondante dans `CAHIER_DES_CHARGES.md` fait foi. Il a ensuite autorisé le moteur Python local (PyTorch, ONNX Runtime, Pillow, NumPy ; ONNX et torchvision accompagnent l'export et l'extracteur) et désigné le dépôt `Michto-p/scanTab`. Tesseract.js était déjà prévu. Ne pas présenter la préparation du corpus ni un test synthétique comme une reconnaissance réelle évaluée. Toute autre dépendance non prévue reste soumise à accord.
+
+Priorité suivante explicitement demandée : autonomie d'analyse sur téléphone sans PC et sans corpus d'apprentissage initial. Embarquer l'OCR déjà prévu, estimer l'échelle sur indices visuels, proposer les découpes et les familles par règles transparentes en attendant le réseau. Le PC devient un complément facultatif. Voir la correction du cahier des charges.
