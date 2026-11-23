@@ -75,6 +75,10 @@ legend { font-size: .9rem; font-weight: 600; padding: 0 .3rem; }
 .label-fields { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
 .label-fields label:first-child { grid-column: 1 / -1; }
 .label-fields input[readonly] { background: #edf2f6; }
+.dimension-note { padding: .8rem; margin: 1rem 0; background: #edf3fa; border-radius: 5px; }
+.dimension-note p { margin-bottom: 0; }
+.dimension-warning { color: #8a410b; font-size: .875rem; border-left: 3px solid var(--amber); padding-left: .6rem; }
+#batch-status { font-size: .875rem; font-weight: 600; color: #725109; }
 .device-heading { display: flex; align-items: center; gap: .5rem; justify-content: space-between; }
 .device-heading h2 { font-size: 1.05rem; }
 .badge { color: #725109; background: #fff3d5; padding: .3rem .6rem; border-radius: 5px; font-size: .875rem; white-space: nowrap; }

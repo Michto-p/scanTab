@@ -30,6 +30,6 @@ export async function loadSession(id){if(!validId(id))throw Error('Identifiant d
 export async function deleteSession(id){if(!validId(id))throw Error('Identifiant de séance invalide.');await request('readwrite',store=>store.delete(id));}
 export async function listSessions(){
   const db=await openDatabase(),tx=db.transaction('sessions','readonly'),finished=done(tx),sessions=[];
-  const scanned=new Promise((resolve,reject)=>{const req=tx.objectStore('sessions').openCursor();req.onerror=()=>reject(req.error);req.onsuccess=()=>{const c=req.result;if(!c){resolve();return;}const s=c.value;sessions.push({id:s.id,seance:s.seance||s.id,name:s.name,createdAt:s.createdAt,updatedAt:s.updatedAt,width:s.width,height:s.height,deviceCount:s.devices.length,validatedCount:s.devices.filter(d=>d.validatedAt&&d.validatedBy).length});c.continue();};});
+  const scanned=new Promise((resolve,reject)=>{const req=tx.objectStore('sessions').openCursor();req.onerror=()=>reject(req.error);req.onsuccess=()=>{const c=req.result;if(!c){resolve();return;}const s=c.value;sessions.push({id:s.id,seance:s.seance||s.id,name:s.name,sourceName:s.sourceName,createdAt:s.createdAt,updatedAt:s.updatedAt,width:s.width,height:s.height,deviceCount:s.devices.length,validatedCount:s.devices.filter(d=>d.validatedAt&&d.validatedBy).length});c.continue();};});
   await Promise.all([scanned,finished]);return sessions.sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
 }

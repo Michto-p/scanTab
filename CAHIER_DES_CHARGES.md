@@ -114,3 +114,14 @@ L'utilisateur demande que le gros du travail soit effectué sur téléphone : le
 - Déporter les calculs de pixels et de géométrie dans un Web Worker local, avec progression et annulation avant comme pendant l'OCR.
 - Conserver la vignette originale pleine résolution pour l'OCR et le corpus. Produire en plus un PNG à fond transparent si le détourage est assez fiable ; sinon garder les pixels et signaler cette limite. Une découpe rectangulaire ne doit pas être présentée comme un masque précis garanti.
 - Ne pas modifier le format ZIP d'apprentissage ni transmettre automatiquement une photo au PC.
+
+## Reprise du parcours depuis les photos – 23 novembre 2026
+
+L'utilisateur précise le parcours attendu : prendre une ou plusieurs photos, trouver les appareils de façon autonome, adapter leur largeur modulaire puis lire chacun. Les exemples à couvrir sont le disjoncteur courant d'un module, le différentiel de deux modules et la prise modulaire de 2,5 modules. Ces formats ne sont pas des règles universelles de reconnaissance : la largeur de la façade et les marquages doivent se confirmer.
+
+- Importer plusieurs photos dans une même séance et les analyser successivement sur le téléphone, sans PC ni transfert implicite ; permettre l'arrêt du lot.
+- Repérer les façades avant d'exiger une échelle : l'OCR d'un appareil détecté ne doit pas être bloqué parce que sa largeur physique est inconnue.
+- Conserver les vrais appareils larges, notamment 2,5 modules, et exclure les espaces vides des vignettes d'appareils quand les indices le permettent.
+- Distinguer largeur estimée par géométrie, largeur issue d'une référence constructeur locale connue et largeur confirmée manuellement. Un type seul ne fixe pas les dimensions.
+- Lire les prises modulaires et signaler une contradiction entre la largeur et un marquage explicite, sans modifier silencieusement le découpage pour faire correspondre une famille.
+- Une photo floue, un appareil masqué, une perspective trop forte ou une façade sans contours ne permettent pas une détection garantie. L'application doit montrer ce qui reste inconnu et conserver les corrections ; « quelle que soit la photo » constitue un objectif de robustesse, pas une promesse de reconnaissance sans information visible.

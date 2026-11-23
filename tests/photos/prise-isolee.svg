@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+  <!-- Scène artificielle : une seule façade sans répétition de pas modulaire. -->
+  <rect width="600" height="600" fill="#333c46"/>
+  <rect x="140" y="90" width="250" height="420" fill="#f0ede5"/>
+  <g fill="#171b20" font-family="Arial, sans-serif" text-anchor="middle">
+    <text x="265" y="139" font-size="26" font-weight="bold">LEGRAND</text>
+    <text x="265" y="177" font-size="24">Ref. 004280</text>
+    <text x="265" y="218" font-size="26">16 A</text>
+    <text x="265" y="251" font-size="24">2P+T</text>
+  </g>
+  <circle cx="265" cy="360" r="73" fill="#d9d5ca" stroke="#333c46" stroke-width="4"/>
+  <circle cx="236" cy="359" r="9" fill="#171b20"/>
+  <circle cx="294" cy="359" r="9" fill="#171b20"/>
+  <rect x="261" y="304" width="8" height="23" rx="3" fill="#777365"/>
+</svg>

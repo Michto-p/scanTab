@@ -6,6 +6,8 @@ import {createPCServer} from '../training/server.mjs';
 import {readManifests} from '../training/corpus.mjs';
 import {recognizeOCR,terminateOCR} from '../training/ocr.mjs';
 import {runMobileOCRBrowserTests,runAutonomousUIBrowserTests,runCutoutBrowserTests,runCutoutUIBrowserTests} from './mobile-browser.mjs';
+import {runCollectionBrowserTests} from './collection-browser.mjs';
+import {runRealPhotoBrowserTests,runRealPhotoUIBrowserTests} from './real-photo-browser.mjs';
 
 // Contrôle Chrome via son protocole natif, sans bibliothèque de test ajoutée.
 const profile = resolve('.local/browser-' + Date.now());
@@ -157,6 +159,9 @@ try {
     console.log(JSON.stringify(await runCutoutBrowserTests({evaluate}),null,2));
     console.log(JSON.stringify(await runAutonomousUIBrowserTests({evaluate}),null,2));
     console.log(JSON.stringify(await runCutoutUIBrowserTests({evaluate,call}),null,2));
+    console.log(JSON.stringify(await runCollectionBrowserTests({evaluate,call}),null,2));
+    console.log(JSON.stringify(await runRealPhotoBrowserTests({evaluate}),null,2));
+    console.log(JSON.stringify(await runRealPhotoUIBrowserTests({evaluate}),null,2));
   }
   if(pcRequests!==requestsBeforeOffline)throw Error('Reconnexion automatique au PC après rechargement');
   if(!process.argv.includes('--shell')){
