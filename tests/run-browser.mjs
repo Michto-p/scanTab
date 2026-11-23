@@ -5,7 +5,7 @@ import { createServer } from '../scripts/serve.mjs';
 import {createPCServer} from '../training/server.mjs';
 import {readManifests} from '../training/corpus.mjs';
 import {recognizeOCR,terminateOCR} from '../training/ocr.mjs';
-import {runMobileOCRBrowserTests,runAutonomousUIBrowserTests} from './mobile-browser.mjs';
+import {runMobileOCRBrowserTests,runAutonomousUIBrowserTests,runCutoutBrowserTests,runCutoutUIBrowserTests} from './mobile-browser.mjs';
 
 // Contrôle Chrome via son protocole natif, sans bibliothèque de test ajoutée.
 const profile = resolve('.local/browser-' + Date.now());
@@ -63,9 +63,12 @@ try {
     // Parcours visible complet : correction manuelle, validation puis correction.
     const click=async selector=>evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
     const idle=()=>until(()=>evaluate('document.querySelector("#workspace").getAttribute("aria-busy") !== "true"'));
+    await evaluate(`(()=>{const option=document.querySelector('#auto-after-photo');if(!option?.checked)throw Error('L’analyse après photo doit être activée par défaut.');option.checked=false;option.dispatchEvent(new Event('change',{bubbles:true}));})()`);
     await evaluate(`(async()=>{const blob=await (await fetch('/tests/photos/tableau-synthetique.svg')).blob();const dt=new DataTransfer();dt.items.add(new File([blob],'tableau.svg',{type:'image/svg+xml'}));const input=document.querySelector('#import-file');input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));})()`);
     await idle();
     if(!await evaluate('document.querySelector("#photo-info").textContent.includes("720 × 520")'))throw Error('Import dans l’interface incomplet');
+    if(!await evaluate(`(async()=>{const {loadSession}=await import('/app/base/store.js');const s=await loadSession(document.querySelector('#saved-photos').value);return !s.rectified&&s.devices.length===0&&document.querySelectorAll('.thumbnail').length===0;})()`))throw Error('L’analyse démarre malgré sa désactivation explicite');
+    console.log('PASS : désactiver l’analyse après photo conserve le parcours manuel.');
     await click('[data-step="perspective"]');
     await click('[data-action="rectify"]');await idle();
     await click('[data-action="suggest"]');await idle();
@@ -151,7 +154,9 @@ try {
   console.log('PASS : rechargement complet hors ligne, interface et modules disponibles.');
   if(process.argv.includes('--mobile-ocr')){
     console.log(JSON.stringify(await runMobileOCRBrowserTests({evaluate}),null,2));
+    console.log(JSON.stringify(await runCutoutBrowserTests({evaluate}),null,2));
     console.log(JSON.stringify(await runAutonomousUIBrowserTests({evaluate}),null,2));
+    console.log(JSON.stringify(await runCutoutUIBrowserTests({evaluate,call}),null,2));
   }
   if(pcRequests!==requestsBeforeOffline)throw Error('Reconnexion automatique au PC après rechargement');
   if(!process.argv.includes('--shell')){

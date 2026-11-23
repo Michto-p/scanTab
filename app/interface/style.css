@@ -41,6 +41,9 @@ footer { padding: 1.25rem; border-top: 1px solid var(--line); display: flex; fle
 .hint { font-size: .875rem; color: var(--muted); line-height: 1.5; }
 .photo-library { display: flex; gap: .6rem; align-items: center; margin: 1rem 0; flex-wrap: wrap; }
 .photo-library select { flex: 1; min-width: 180px; max-width: 520px; }
+.automatic-option { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; padding: .8rem 0; margin-bottom: .5rem; cursor: pointer; }
+.automatic-option small { font-weight: 400; color: var(--muted); }
+.automatic-option input { margin: 0; flex-shrink: 0; accent-color: var(--blue); }
 #save-status { font-size: .875rem; color: var(--muted); margin-left: auto; }
 .steps { display: flex; background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .steps button { flex: 1; border: 0; border-radius: 0; border-right: 1px solid var(--line); display: flex; align-items: center; justify-content: center; gap: .6rem; }
@@ -76,7 +79,7 @@ legend { font-size: .9rem; font-weight: 600; padding: 0 .3rem; }
 .device-heading h2 { font-size: 1.05rem; }
 .badge { color: #725109; background: #fff3d5; padding: .3rem .6rem; border-radius: 5px; font-size: .875rem; white-space: nowrap; }
 .badge.validated { color: #186344; background: #e3f4eb; }
-.device-preview { display: block; max-width: 100%; height: 200px; object-fit: contain; margin: 1rem auto; background: #edf2f6; }
+.device-preview { display: block; max-width: 100%; height: 200px; object-fit: contain; margin: 1rem auto; background: repeating-conic-gradient(#e0e7ee 0% 25%,#f4f7fa 0% 50%) 0 0 / 16px 16px; }
 .navigation { margin-top: 1rem; }
 .thumbnails { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
 .thumbnail { padding: .4rem; min-width: 48px; display: grid; place-items: center; gap: .25rem; font-size: .875rem; }

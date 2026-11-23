@@ -1,0 +1,13 @@
+{
+  "synthetique": true,
+  "limites": "Scènes géométriques artificielles. Aucun taux de détection sur photos réelles n'est établi.",
+  "width": 720,
+  "height": 520,
+  "panel": { "width": 540, "height": 350, "left": 70, "top": 80, "pitch": 50, "deviceHeight": 200, "widths": [2, 1, 1, 1, 1, 2] },
+  "scenes": [
+    { "nom": "coffret-frontal", "points": [{"x":90,"y":80},{"x":630,"y":80},{"x":630,"y":430},{"x":90,"y":430}], "tolerance_px": 10 },
+    { "nom": "coffret-trapezoidal", "points": [{"x":110,"y":70},{"x":650,"y":100},{"x":610,"y":450},{"x":70,"y":410}], "tolerance_px": 9 },
+    { "nom": "coffret-trapezoidal-bruit-reflets", "points": [{"x":100,"y":100},{"x":620,"y":65},{"x":650,"y":420},{"x":120,"y":460}], "tolerance_px": 10, "noise": 5, "reflection": true },
+    { "nom": "coffret-vide", "points": [{"x":110,"y":70},{"x":650,"y":100},{"x":610,"y":450},{"x":70,"y":410}], "empty": true, "unknown": true }
+  ]
+}

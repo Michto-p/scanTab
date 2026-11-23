@@ -10,7 +10,7 @@ Les consignes de travail sont dans [AGENTS.md](AGENTS.md), et le suivi dans [PRO
 
 Le parcours de collecte est utilisable : import et entrée caméra native, cadrage, redressement, proposition de rangées, correction au demi-module, vignettes PNG, étiquettes humaines, stockage local et export ZIP par séance.
 
-Le bouton **Analyser la photo sur cet appareil** enchaîne le redressement selon le cadrage, la proposition de rangées et d'échelle, le découpage des façades et la lecture OCR embarquée. Marque, référence explicitement marquée, calibre, courbe, sensibilité, classe et pôles sont proposés lorsqu'ils sont lisibles. Les règles sur les marquages proposent aussi des familles sans apprentissage initial : disjoncteur, différentiel identifiable, contacteur ou autre nom explicite. Les faibles scores et les ambiguïtés restent inconnus ; aucune proposition n'est validée automatiquement.
+La capture ou l'import lance par défaut le cadrage, le redressement, la proposition de rangées et d'échelle, le découpage des façades et la lecture OCR embarquée. L'option **Analyser automatiquement après la photo** permet de garder un parcours manuel ; elle est mémorisée sur l'appareil. Marque, référence explicitement marquée, calibre, courbe, sensibilité, classe et pôles sont proposés lorsqu'ils sont lisibles. Les règles sur les marquages proposent aussi des familles sans apprentissage initial : disjoncteur, différentiel identifiable, contacteur ou autre nom explicite. Les faibles scores et les ambiguïtés restent inconnus ; aucune proposition n'est validée automatiquement.
 
 Le PC est un complément facultatif pour collecter les validations et entraîner un futur classifieur de familles. **Aucun réseau de familles électriques n'est livré** ; le téléphone utilise d'abord des règles transparentes, de provenance `regles_ocr`. Les essais terrain Android/iOS et les photos réelles restent ouverts. Aucun contrôle réglementaire n'est intégré.
 
@@ -29,9 +29,11 @@ Attendre **Disponible hors ligne** au premier chargement : environ **17,14 Mo** 
 ## Analyse sur le téléphone
 
 1. Prendre ou importer une photo nette, aussi frontale que possible.
-2. Choisir **Analyser la photo sur cet appareil**. Si le tableau est incliné, corriger d'abord les quatre coins dans **Redresser**, puis choisir **Analyser avec ce cadrage**.
+2. Laisser l'analyse démarrer. Un cadrage automatique est retenu seulement si les bords et une rangée modulaire se confirment ; sinon la photo entière reste le point de départ. Les calculs de géométrie et de pixels s'effectuent dans un Web Worker local. **Arrêter l'analyse** fonctionne dès la recherche de cadrage. Pour reprendre ou corriger, utiliser **Analyser la photo sur cet appareil**, ou déplacer les quatre coins dans **Redresser** puis choisir **Analyser avec ce cadrage**. Les coins corrigés manuellement restent prioritaires.
 3. Vérifier les limites proposées : le pas répété des façades donne une estimation en modules de 18 mm, sans supposer 13 modules. Les appareils larges sont conservés. Si l'échelle n'est pas identifiable, le parcours s'arrête au découpage pour la corriger : saisir le nombre réel de modules ou choisir **Repérer un appareil de 18 mm**, puis toucher ses deux bords dans la rangée.
 4. Lire les propositions, les corriger puis valider humainement. **Lire cette vignette** et **Lire toute cette rangée** relancent l'OCR local : une nouvelle proposition peut améliorer une ancienne suggestion moins confiante ; les saisies humaines et les appareils validés sont conservés. **Arrêter l'analyse** garde les lectures déjà terminées.
+
+Un fond homogène distinct de la façade peut être retiré automatiquement. L'aperçu affiche alors le PNG transparent, avec **Voir l'original** pour comparer et **Télécharger ce PNG à fond transparent** pour l'enregistrer. Le masque reste une proposition géométrique : un contour touchant le cadre, un fond variable ou trop proche de la façade laisse la vignette intacte avec une explication. Les dimensions et les inscriptions internes sont conservées. **L'OCR et le ZIP d'apprentissage utilisent toujours la vignette originale**, conservée séparément du détourage.
 
 La largeur physique proposée est le nombre de modules × 18 mm. Cette conversion suppose que l'échelle géométrique ou le repère est correct ; les 18 mm seuls ne déterminent pas des pixels sur une photo. Une façade uniforme, des séparations masquées ou une photo oblique peuvent nécessiter un repère manuel. Le détecteur ne localise pas un rail DIN caché.
 
@@ -73,7 +75,7 @@ La recette navigateur utilise Chrome installé sur Windows ; `CHROME_PATH` perme
 
 ## Parcours de collecte
 
-1. Prendre une photo avec la caméra native du téléphone ou importer une image. Le fichier original est conservé, sans réduction de résolution. Un format illisible est signalé ; JPEG et PNG sont les formats conseillés pour les essais.
+1. Pour le parcours manuel ci-dessous, décocher **Analyser automatiquement après la photo**. Prendre une photo avec la caméra native du téléphone ou importer une image. Le fichier original est conservé, sans réduction de résolution. Un format illisible est signalé ; JPEG et PNG sont les formats conseillés pour les essais.
 2. Ouvrir « Informations de séance et de validation » pour nommer le tableau et confirmer l'identifiant de séance. Toutes les photos d'une même prise de vue doivent garder cet identifiant ; « Nouvelle séance » en crée un autre.
 3. Dans « Redresser », déplacer les quatre coins ou renseigner leurs positions en pourcentage. Appliquer le redressement ; le traitement utilise l'image originale, pas la miniature d'affichage.
 4. Dans « Découper », proposer ou ajouter les rangées. Ajuster leurs limites et confirmer l'estimation ou le repère de l'échelle. Une bande détectée par seul contraste reste non calibrée. Un module vaut 18 mm ; aucun nombre de modules n'est imposé.
@@ -100,7 +102,7 @@ Chaque caractéristique est un objet `{ "valeur": ..., "confiance": ..., "niveau
 
 ## Vérification et limites
 
-Les tests couvrent les quadrilatères invalides, la perspective, les demi-modules, les bandes du dessin annoté, la validation, l'exclusion des appareils non validés et le format ZIP. La recette Chrome vérifie aussi les pixels, IndexedDB, les corrections dans l'interface, un export regroupant deux photos, la restauration et le rechargement sans réseau ni cache HTTP.
+Les tests couvrent les quadrilatères invalides, le cadrage frontal et oblique, le redressement des pixels, les demi-modules, les bandes des dessins annotés, le détourage et ses refus prudents, la validation, l'exclusion des appareils non validés et le format ZIP. La recette Chrome vérifie aussi les pixels, IndexedDB, les corrections dans l'interface, un export regroupant deux photos, la restauration et le rechargement sans réseau ni cache HTTP. Elle teste le vrai worker, l'import automatique, l'arrêt pendant le cadrage et l'OCR, la comparaison original/détourage et le PNG réellement téléchargé.
 
 Le dessin de `tests/photos` n'est pas une photo réelle. La proposition de rangées utilise le contraste, ne garantit pas la localisation des rails DIN et exige une correction humaine. La netteté estimée ne garantit pas la lisibilité d'un marquage. Les grandes images peuvent atteindre les limites mémoire du téléphone ; aucune réduction silencieuse de résolution n'est appliquée.
 

@@ -104,3 +104,13 @@ Le 22 novembre 2026, l'utilisateur précise que le travail de base doit fonction
 - Un module vaut 18 mm. La conversion pixels/mm demande une estimation visuelle du pas répété ou un repère calibré ; ne jamais fixer arbitrairement 13 modules ni présenter cette estimation comme une mesure physique certaine.
 - Des règles explicites sur les marquages peuvent proposer une famille avant l'entraînement d'un réseau ; leur provenance est `regles_ocr`, jamais `classifieur`. Les ambiguïtés et faibles scores restent inconnus, aucune proposition n'est validée automatiquement.
 - La collecte de données et l'amélioration par modèle viendront ensuite ; elles ne doivent pas bloquer les fonctions de base embarquées.
+
+## Automatisation renforcée – 23 novembre 2026
+
+L'utilisateur demande que le gros du travail soit effectué sur téléphone : lecture de photo, OCR, détection et détourage automatiques des produits modulaires.
+
+- Après capture ou import, lancer par défaut le parcours local complet ; proposer un mode manuel désactivant ce démarrage.
+- Proposer un cadrage et un redressement automatique uniquement si les indices visuels sont suffisants ; laisser l'original accessible et les coins corrigibles.
+- Déporter les calculs de pixels et de géométrie dans un Web Worker local, avec progression et annulation avant comme pendant l'OCR.
+- Conserver la vignette originale pleine résolution pour l'OCR et le corpus. Produire en plus un PNG à fond transparent si le détourage est assez fiable ; sinon garder les pixels et signaler cette limite. Une découpe rectangulaire ne doit pas être présentée comme un masque précis garanti.
+- Ne pas modifier le format ZIP d'apprentissage ni transmettre automatiquement une photo au PC.

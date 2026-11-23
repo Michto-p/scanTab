@@ -78,3 +78,15 @@ Correction explicite de l'utilisateur : fournir le travail de base embarqué ava
 Vérification de l'autonomie : 45 tests Node réussis. Recette Chrome : 6 contrôles initiaux, parcours manuel et liaison PC conservés ; puis serveurs web et PC de recette réellement fermés, réseau/cache HTTP désactivés, rechargement complet et 5 contrôles OCR embarqué + 5 contrôles de parcours automatique réussis. Le dessin annoté de 8 modules donne 6 PNG pleine résolution `[2,1,1,1,1,2]`, les marquages attendus et les propositions différentiel/disjoncteurs/contacteur, sans validation. Temps observé environ 1,3 à 2 s sur ce PC, aucune mesure de téléphone réel ni de précision métier. `/shared` inchangé.
 
 Recette publique finale : les mêmes 10 contrôles OCR/parcours ont réussi avec la PWA de GitHub Pages hors ligne et aucun PC configuré. Sur ce PC : premier OCR ~0,45 s ; action complète sur le dessin de 8 modules ~1,15 s. Les tâches terrain restent ouvertes ; le PC et le futur corpus ne bloquent plus le travail de base embarqué.
+
+## Travail en cours – automatisation renforcée du 23 novembre 2026
+
+- [x] Démarrer le parcours local dès la capture/import, avec option de mode manuel conservée.
+- [x] Proposer le cadrage et le redressement par géométrie, en conservant les corrections et les incertitudes.
+- [x] Effectuer géométrie/redressement/détourage dans un Web Worker local, avec annulation de toutes les étapes.
+- [x] Ajouter un détourage transparent prudent, un aperçu comparatif et un téléchargement PNG, sans altérer la vignette originale d'apprentissage.
+- [ ] Vérifier le parcours complet hors ligne, les annulations, les originaux et les exports puis publier la mise à jour.
+
+Vérification locale : 63 tests Node réussis, dont 7 scénarios de cadrage, 8 de détourage et 3 de redressement des pixels. La recette Chrome réussit ses 22 contrôles détaillés et ses parcours complémentaires : mode manuel, import automatique, arrêt dès la recherche de cadrage puis pendant l'OCR, reprise, calibration tactile, saisies conservées, original intact, vrai PNG transparent téléchargé, IndexedDB et ZIP conservés. Les serveurs web et PC sont effectivement fermés et le cache HTTP coupé avant la recette embarquée. Aucun débordement à 390 px. Le cache v8 inclut tous les modules des workers. Aucun changement dans `/shared` ni ajout de dépendance.
+
+Ces essais restent synthétiques. Sur ce PC, le dessin autonome de 8 modules et 6 appareils prend environ 1,65 s ; les performances Android/iOS et la précision sur photos réelles restent à mesurer. Le détourage retire seulement un fond homogène nettement distinct, connecté au bord : les façades touchant le cadre, les fonds variables et les contours ambigus restent intacts avec une explication. L'original reste la source de l'OCR et du ZIP ; le PNG transparent est un téléchargement distinct.

@@ -1,4 +1,138 @@
-import {readFile} from 'node:fs/promises';
+import {readFile,mkdir,readdir} from 'node:fs/promises';
+import {resolve} from 'node:path';
+
+export async function runCutoutUIBrowserTests({evaluate,call,appBase='/app/',timeoutMs=60000}) {
+  const annotation=JSON.parse(await readFile(new URL('./photos/detourage-synthetique.annotations.json',import.meta.url),'utf8'));
+  const downloadPath=resolve('.local/qa-cutout-downloads-'+Date.now());await mkdir(downloadPath,{recursive:true});
+  await call('Browser.setDownloadBehavior',{behavior:'allow',downloadPath});
+  await evaluate(`(${startCutoutUIQA.toString()})(${JSON.stringify({annotation,appBase})})`);
+  const deadline=Date.now()+timeoutMs;
+  let state;
+  while(Date.now()<deadline){
+    state=await evaluate('window.__cutoutUIQA || null');
+    if(state&&state.status!=='pending')break;
+    await new Promise(done=>setTimeout(done,150));
+  }
+  if(state?.status!=='pass')throw Error('Recette aperçu détourage : '+JSON.stringify(state));
+  let file;
+  const downloadDeadline=Date.now()+10000;
+  while(Date.now()<downloadDeadline){
+    file=(await readdir(downloadPath)).find(name=>name.endsWith('-detoure.png'));
+    if(file)break;
+    await new Promise(done=>setTimeout(done,100));
+  }
+  if(!file)throw Error('Le bouton de détourage n’a pas téléchargé le PNG attendu.');
+  const bytes=await readFile(resolve(downloadPath,file));
+  if(!bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))throw Error('Le fichier téléchargé n’est pas un PNG.');
+  const pixels=await evaluate(`(${checkDownloadedCutout.toString()})(${JSON.stringify({base64:bytes.toString('base64'),annotation})})`);
+  if(!pixels.valid)throw Error('PNG détouré téléchargé incorrect : '+JSON.stringify(pixels));
+  state.tests.push({nom:'Le fichier PNG réellement téléchargé garde sa transparence et ses marquages',succes:true});
+  return state;
+}
+
+async function checkDownloadedCutout({base64,annotation}) {
+  const image=new Image();image.src='data:image/png;base64,'+base64;await image.decode();
+  const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+  canvas.getContext('2d').drawImage(image,0,0);
+  const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+  const valid=canvas.width===annotation.width&&canvas.height===annotation.height&&pixels[3]===0&&annotation.protectedPoints.every(([x,y])=>pixels[(y*canvas.width+x)*4+3]===255);
+  return {valid,width:canvas.width,height:canvas.height,backgroundAlpha:pixels[3]};
+}
+
+function startCutoutUIQA({annotation,appBase}) {
+  const qa=window.__cutoutUIQA={status:'pending',tests:[]};
+  const assert=(value,message)=>{if(!value)throw Error(message);};
+  const pause=ms=>new Promise(done=>setTimeout(done,ms));
+  const idle=async()=>{const end=performance.now()+40000;while(document.querySelector('#workspace').getAttribute('aria-busy')==='true'){if(performance.now()>end)throw Error('L’interface de détourage reste occupée.');await pause(50);}};
+  const click=async selector=>{const node=document.querySelector(selector);assert(node&&!node.disabled,'Commande indisponible : '+selector);node.click();await idle();};
+  const preview=async()=>{
+    const image=document.querySelector('.device-preview');await image.decode();
+    const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;canvas.getContext('2d').drawImage(image,0,0);
+    return {width:canvas.width,height:canvas.height,data:canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data};
+  };
+  void(async()=>{
+    try{
+      const {pngBlob}=await import(new URL(appBase+'pretraitement/image.js',location.href));
+      const {loadSession}=await import(new URL(appBase+'base/store.js',location.href));
+      const automatic=document.querySelector('#auto-after-photo');assert(automatic,'Option d’analyse automatique absente.');automatic.checked=false;automatic.dispatchEvent(new Event('change',{bubbles:true}));
+      const canvas=document.createElement('canvas');canvas.width=annotation.width;canvas.height=annotation.height;const context=canvas.getContext('2d');
+      const paint=rect=>{context.fillStyle='rgb('+rect.color.join(',')+')';context.fillRect(rect.x,rect.y,rect.width,rect.height);};
+      paint({x:0,y:0,width:canvas.width,height:canvas.height,color:annotation.background});paint(annotation.facade);annotation.details.forEach(paint);
+      const source=await pngBlob(canvas),input=document.querySelector('#import-file'),transfer=new DataTransfer();transfer.items.add(new File([source],'detourage-annoté.png',{type:'image/png'}));input.files=transfer.files;input.dispatchEvent(new Event('change',{bubbles:true}));await idle();
+      await click('[data-step="perspective"]');await click('[data-action="rectify"]');await click('[data-action="add-row"]');
+      for(const [bound,value]of Object.entries({top:0,bottom:100,left:0,right:100})){const slider=document.querySelector('[data-row="0"][data-bound="'+bound+'"]');slider.value=value;slider.dispatchEvent(new Event('input',{bubbles:true}));}
+      const modules=document.querySelector('[data-row="0"][data-modules]');modules.value='1';modules.dispatchEvent(new Event('change',{bubbles:true}));
+      await click('[data-action="crop"]');
+      const session=await loadSession(document.querySelector('#saved-photos').value),device=session?.devices[0];
+      assert(session?.devices.length===1&&device.blob instanceof Blob&&device.cutoutBlob instanceof Blob&&device.cutout?.applied,'La vignette et son détourage n’ont pas été conservés séparément.');
+      assert(!device.validatedAt&&!device.validatedBy,'La création du détouré a validé l’appareil.');
+      let pixels=await preview();assert(pixels.width===annotation.width&&pixels.height===annotation.height&&pixels.data[3]===0,'L’aperçu initial ne présente pas le PNG détouré à sa résolution originale.');
+      for(const [x,y]of annotation.protectedPoints)assert(pixels.data[(y*pixels.width+x)*4+3]===255,'L’aperçu a effacé un détail interne.');
+      await click('[data-action="toggle-cutout"]');pixels=await preview();
+      assert(pixels.data[3]===255&&annotation.background.every((value,index)=>pixels.data[index]===value),'Le comparateur ne restitue pas la vignette originale opaque.');
+      await click('[data-action="toggle-cutout"]');pixels=await preview();assert(pixels.data[3]===0,'Le retour au détouré ne fonctionne pas.');
+      qa.tests.push({nom:'Aperçu détouré et comparaison avec l’original, sans validation automatique',succes:true});
+      await click('[data-action="export-cutout"]');qa.status='pass';
+    }catch(error){qa.tests.push({nom:'Aperçu et téléchargement du détourage',succes:false,detail:error.message});qa.status='fail';}
+  })();
+  return true;
+}
+
+export async function runCutoutBrowserTests({evaluate,appBase='/app/',timeoutMs=30000}) {
+  const annotation=JSON.parse(await readFile(new URL('./photos/detourage-synthetique.annotations.json',import.meta.url),'utf8'));
+  await evaluate(`(${startCutoutQA.toString()})(${JSON.stringify({annotation,appBase})})`);
+  const deadline=Date.now()+timeoutMs;
+  while(Date.now()<deadline){
+    const state=await evaluate('window.__cutoutQA || null');
+    if(state&&state.status!=='pending'){
+      if(state.status!=='pass')throw Error('Recette détourage : '+JSON.stringify(state));
+      return state;
+    }
+    await new Promise(done=>setTimeout(done,150));
+  }
+  throw Error('Délai de recette détourage dépassé : '+JSON.stringify(await evaluate('window.__cutoutQA || null')));
+}
+
+function startCutoutQA({annotation,appBase}) {
+  const qa=window.__cutoutQA={status:'pending',tests:[]};
+  const assert=(value,message)=>{if(!value)throw Error(message);};
+  void(async()=>{
+    try{
+      const [{calculateImage},{pngBlob}]=await Promise.all([import(new URL(appBase+'pretraitement/calcul.js',location.href)),import(new URL(appBase+'pretraitement/image.js',location.href))]);
+      const scene=background=>{
+        const {width,height}=annotation,data=new Uint8ClampedArray(width*height*4);
+        const paint=rect=>{for(let y=rect.y;y<rect.y+rect.height;y++)for(let x=rect.x;x<rect.x+rect.width;x++)data.set([...rect.color,255],(y*width+x)*4);};
+        paint({x:0,y:0,width,height,color:background});paint(annotation.facade);annotation.details.forEach(paint);return {width,height,data};
+      };
+      const pixels=scene(annotation.background),original=pixels.data.slice();
+      const canvas=document.createElement('canvas');canvas.width=pixels.width;canvas.height=pixels.height;
+      canvas.getContext('2d').putImageData(new ImageData(original.slice(),pixels.width,pixels.height),0,0);
+      const originalPNG=await pngBlob(canvas);
+      const result=await calculateImage('détourage',pixels);
+      assert(pixels.data.byteLength===0,'Le détourage n’a pas transféré les pixels au worker.');
+      assert(result.applied&&result.confidence>=.8,'Le fond uniforme de la recette n’a pas été isolé.');
+      assert(JSON.stringify(result.bounds)===JSON.stringify(annotation.expectedBounds),'Contour différent des annotations.');
+      assert(result.imageData.width===annotation.width&&result.imageData.height===annotation.height,'Les dimensions originales ont été réduites.');
+      for(let p=0;p<original.length;p+=4)for(let channel=0;channel<3;channel++)assert(original[p+channel]===result.imageData.data[p+channel],'Un pixel RGB a été altéré par le masque.');
+      canvas.getContext('2d').putImageData(new ImageData(result.imageData.data,result.imageData.width,result.imageData.height),0,0);
+      const cutoutPNG=await pngBlob(canvas),bitmap=await createImageBitmap(cutoutPNG);
+      try{canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);canvas.getContext('2d').drawImage(bitmap,0,0);}
+      finally{bitmap.close();}
+      const decoded=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+      assert(decoded[3]===0,'Le PNG exportable n’a pas conservé la transparence du fond.');
+      for(const [x,y]of annotation.protectedPoints){const offset=(y*annotation.width+x)*4;for(let c=0;c<4;c++)assert(decoded[offset+c]===original[offset+c],'Un marquage ou détail interne a été effacé.');}
+      const originalBitmap=await createImageBitmap(originalPNG);
+      try{canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);canvas.getContext('2d').drawImage(originalBitmap,0,0);}
+      finally{originalBitmap.close();}
+      assert(canvas.getContext('2d').getImageData(0,0,1,1).data[3]===255,'La création du détouré a modifié la vignette originale.');
+      qa.tests.push({nom:'Worker local : PNG transparent, pleine résolution et marquages internes conservés',succes:true});
+      const ambiguous=await calculateImage('détourage',scene([229,231,230]));
+      assert(!ambiguous.applied&&ambiguous.imageData.data.every((value,index)=>index%4!==3||value===255),'Un fond ambigu a été effacé.');
+      qa.tests.push({nom:'Un fond ambigu conserve la vignette opaque',succes:true});qa.status='pass';
+    }catch(error){qa.tests.push({nom:'Détourage réel hors ligne',succes:false,detail:error.message});qa.status='fail';}
+  })();
+  return true;
+}
 
 export async function runAutonomousUIBrowserTests({evaluate,appBase='/app/',timeoutMs=120000}) {
   const source=await readFile(new URL('./photos/tableau-lecture-autonome.svg',import.meta.url),'utf8');
@@ -30,24 +164,47 @@ function startAutonomousUIQA({source,annotation,appBase}) {
   void(async()=>{
     try{
       assert(navigator.serviceWorker.controller,'La PWA doit être contrôlée par son service worker.');
-      const input=document.querySelector('#import-file'),transfer=new DataTransfer();
-      transfer.items.add(new File([source],'tableau-lecture-autonome.svg',{type:'image/svg+xml'}));
-      input.files=transfer.files;input.dispatchEvent(new Event('change',{bubbles:true}));
-      await idle();
-      assert(document.querySelector('#photo-info').textContent.includes(annotation.width+' × '+annotation.height),'La photo originale n’est pas chargée.');
-      const button=document.querySelector('[data-action="auto-analyze"]');
-      assert(button&&!button.disabled,'Le bouton d’analyse autonome n’est pas disponible depuis la photo.');
-      const started=performance.now();button.click();await idle();qa.durationMs=Math.round(performance.now()-started);
+      const {loadSession}=await import(new URL(appBase+'base/store.js',location.href));
+      const importFixture=async()=>{
+        const input=document.querySelector('#import-file'),transfer=new DataTransfer();
+        transfer.items.add(new File([source],'tableau-lecture-autonome.svg',{type:'image/svg+xml'}));
+        input.files=transfer.files;input.dispatchEvent(new Event('change',{bubbles:true}));await idle();
+      };
+      const automatic=document.querySelector('#auto-after-photo');
+      assert(automatic,'L’option d’analyse après photo est absente.');
+      automatic.checked=false;automatic.dispatchEvent(new Event('change',{bubbles:true}));
+      await importFixture();
+      const manual=await loadSession(document.querySelector('#saved-photos').value);
+      assert(!manual.rectified&&manual.devices.length===0,'Le mode manuel a démarré une analyse après l’import.');
+      assert(document.querySelector('[data-action="auto-analyze"]')&&!document.querySelector('#workspace').inert,'Le mode manuel ne propose plus sa commande de lancement.');
+      qa.tests.push({nom:'L’analyse désactivée respecte l’import manuel hors ligne',succes:true});
+      const option=document.querySelector('#auto-after-photo');option.checked=true;option.dispatchEvent(new Event('change',{bubbles:true}));
+      let cancelledBeforeOCR=false;
+      const progress=document.querySelector('#analysis-progress'),stageObserver=new MutationObserver(()=>{
+        const status=document.querySelector('#analysis-status').textContent;
+        if(!progress.hidden&&/Recherche.*cadrage/i.test(status)){
+          cancelledBeforeOCR=true;qa.cancelledStage=status;stageObserver.disconnect();document.querySelector('#analysis-cancel').click();
+        }
+      });
+      stageObserver.observe(progress,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});
+      try{await importFixture();}finally{stageObserver.disconnect();}
+      assert(cancelledBeforeOCR,'La recherche de cadrage ne propose pas d’arrêt avant l’OCR.');
+      assert(/annul/i.test(document.querySelector('#message').textContent),'L’annulation du cadrage n’a pas été signalée.');
+      assert(!document.querySelector('#workspace').inert&&progress.hidden,'L’interface reste bloquée après l’annulation du cadrage.');
+      const interrupted=await loadSession(document.querySelector('#saved-photos').value);
+      assert(interrupted.devices.every(device=>!device.validatedAt&&!device.validatedBy),'Le cadrage annulé a validé un appareil.');
+      qa.tests.push({nom:'La recherche de cadrage automatique peut être arrêtée avant l’OCR',succes:true});
+      const started=performance.now();await importFixture();qa.durationMs=Math.round(performance.now()-started);
       assert(document.querySelectorAll('.thumbnail').length===6,'Le tableau de huit modules doit fournir six vignettes : '+document.querySelector('#message').textContent);
       const id=document.querySelector('#saved-photos').value;
-      const {loadSession}=await import(new URL(appBase+'base/store.js',location.href));
       const session=await loadSession(id);
       assert(session?.devices.length===6,'La séance complète n’a pas été sauvegardée.');
+      assert(session.width===annotation.width&&session.height===annotation.height,'Les dimensions originales n’ont pas été conservées.');
       const row=session.rows[0],expected=annotation.rows[0];
       assert(session.rows.length===1&&row.modules===8,'L’échelle a été forcée à un nombre de modules incorrect.');
       assert(JSON.stringify(session.devices.map(device=>device.rect.modules))===JSON.stringify(expected.devices.map(device=>device.modules)),'Les appareils de deux modules ont été divisés.');
       assert(Math.abs(row.scale.pixelsPerModule-annotation.pixelsPerModule)<2,'Le pas de 18 mm a été mal estimé.');
-      qa.tests.push({nom:'Un clic détecte une rangée de huit modules et six appareils de largeurs variables',succes:true});
+      qa.tests.push({nom:'L’import démarre seul le cadrage, l’échelle et six appareils de largeurs variables',succes:true});
       for(const [index,device]of session.devices.entries()){
         assert(!device.validatedAt&&!device.validatedBy,'L’appareil '+(index+1)+' a été validé automatiquement.');
         assert(device.blob instanceof Blob&&device.blob.type==='image/png','Vignette PNG absente.');
@@ -88,11 +245,13 @@ function startAutonomousUIQA({source,annotation,appBase}) {
       document.querySelector('[data-step="rows"]').click();
       document.querySelector('[data-action="calibrate-row"]').click();await idle();
       const canvas=document.querySelector('#photo-canvas'),bounds=canvas.getBoundingClientRect();
-      for(const x of [320,420]){
-        const coordinates={clientX:bounds.left+x/annotation.width*bounds.width,clientY:bounds.top+300/annotation.height*bounds.height,pointerId:7,pointerType:'touch',bubbles:true};
+      const working=await createImageBitmap(resumed.rectified),calibrationRow=resumed.rows[0];
+      for(const x of [calibrationRow.left+2*calibrationRow.scale.pixelsPerModule,calibrationRow.left+3*calibrationRow.scale.pixelsPerModule]){
+        const coordinates={clientX:bounds.left+x/working.width*bounds.width,clientY:bounds.top+(calibrationRow.top+calibrationRow.bottom)/2/working.height*bounds.height,pointerId:7,pointerType:'touch',bubbles:true};
         canvas.dispatchEvent(new PointerEvent('pointerdown',{...coordinates,buttons:1}));
         canvas.dispatchEvent(new PointerEvent('pointerup',{...coordinates,buttons:0}));
       }
+      working.close();
       assert(/Échelle établie/.test(document.querySelector('#message').textContent),'Les deux touches n’ont pas établi le repère de 18 mm.');
       assert(document.querySelector('[data-row="0"][data-modules]').value==='8','Le repère d’un module n’a pas conservé les huit modules de la rangée.');
       // Le redécoupage constitue une action destructive confirmée uniquement

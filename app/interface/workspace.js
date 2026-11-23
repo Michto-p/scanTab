@@ -1,8 +1,9 @@
 import {loadPhoto,clarity} from '../capture/photo.js';
 import {validateQuad,snapHalfModule} from '../pretraitement/geometry.js';
-import {rectify,cropDevice,pngBlob} from '../pretraitement/image.js';
-import {suggestRows,validateRow,deviceRects} from '../segmentation/rows.js';
-import {analyzeLayout,calibrateRow} from '../segmentation/automatic.js';
+import {rectify,cropDevice,cutoutDevice,pngBlob} from '../pretraitement/image.js';
+import {calculateImage} from '../pretraitement/calcul.js';
+import {validateRow,deviceRects} from '../segmentation/rows.js';
+import {calibrateRow} from '../segmentation/automatic.js';
 import {recognizeLocal} from '../identification/local.js';
 import {mergeRecognition} from '../identification/results.js';
 import {createLabels,FIELDS,FAMILIES,validateDevice,invalidateDevice} from './labels.js';
@@ -21,6 +22,7 @@ let session=null,original=null,corrected=null,step='capture',selected=0,busy=fal
 let group=preference('seance')||newGroup(),validator=preference('validator')||'';
 let saveTimer,saveChain=Promise.resolve(),revision=0,savedRevision=0,thumbnailUrls=[],photosMetadata=[];
 let analysisController=null,calibrating=null;
+let automaticAfterPhoto=preference('auto-after-photo')!=='false',showOriginal=false,previewUrl='';
 
 function message(text,error=false){const node=$('#message');node.textContent=text;node.classList.toggle('error',error);}
 function fail(error){message(error.name==='QuotaExceededError'?'Stockage plein. Exportez vos appareils validés avant de fermer cette page.':error.message||'Cette opération a échoué.',true);}
@@ -41,7 +43,7 @@ async function run(fn){
   try{await fn();}catch(error){if(error.name==='AbortError')message(error.message);else fail(error);}finally{busy=false;$('#workspace').inert=false;$('#workspace').removeAttribute('aria-busy');controls.forEach(node=>{node.disabled=node.dataset.wasDisabled==='true';delete node.dataset.wasDisabled;});render();}
 }
 function defaults(width,height){return [{x:0,y:0},{x:width,y:0},{x:width,y:height},{x:0,y:height}];}
-function editGeometry(){session.geometryDirty=Boolean(session.rectified);changed();draw();}
+function editGeometry(){session.pointsSource='manuel';session.geometryDirty=Boolean(session.rectified);changed();draw();}
 function editRows(){session.cutsDirty=true;changed();draw();}
 function enabled(name){return name==='capture'||(name==='perspective'&&original)||(name==='rows'&&corrected&&!session.geometryDirty)||(name==='labels'&&session?.devices.length&&!session.geometryDirty&&!session.cutsDirty);}
 function updateExportButton(){const validated=session&&(session.devices.some(d=>d.validatedAt)||photosMetadata.some(s=>s.id!==session.id&&s.seance===group&&s.validatedCount>0));$('#export').disabled=!validated||session.geometryDirty||session.cutsDirty;}
@@ -89,14 +91,16 @@ function renderPanel(){
   }else{
     const device=session.devices[selected];
     if(!device){panel.innerHTML='<p>Aucune vignette. Revenez au découpage.</p>';return;}
-    panel.innerHTML=`<div class="device-heading"><h2>Appareil ${selected+1} sur ${session.devices.length}</h2><span class="badge ${device.validatedAt?'validated':''}">${device.validatedAt?'Validé':'À vérifier'}</span></div><p class="hint">L’OCR fonctionne sur cet appareil, sans PC. Corrigez les propositions avant de valider. Laissez « inconnu » si un marquage est illisible.</p><div class="stack"><button class="primary" data-action="read-one" ${device.validatedAt?'disabled':''}>Lire cette vignette</button><button data-action="read-row">Lire toute cette rangée</button></div><img class="device-preview" src="${thumbnailUrls[selected]}" alt="Vignette pleine résolution de l’appareil ${selected+1}"><div class="label-fields">${FIELDS.map(({key,label})=>`<label>${label}${key==='famille'?`<select data-label="${key}">${FAMILIES.map(f=>`<option ${device.labels[key].valeur===f?'selected':''}>${escape(f)}</option>`).join('')}</select>`:`<input data-label="${key}" value="${escape(device.labels[key].valeur)}" ${key==='modules'?'readonly':''}>`}<small>${escape(levelNames[device.labels[key].niveau]||device.labels[key].niveau)} · ${(device.labels[key].confiance*100).toFixed(0)} %</small></label>`).join('')}</div><p class="hint">Les scores automatiques sont indicatifs. La validation atteste votre lecture de chaque champ.</p>${device.validatedAt?`<p class="validation-note">Validé par ${escape(device.validatedBy)} le ${new Date(device.validatedAt).toLocaleString('fr-FR')}.</p>`:''}${device.recognition?`<details class="recognition-details"><summary>Lecture et limites</summary><p>${escape(device.recognition.limites.join(' '))}</p><pre>${escape(device.recognition.texte||'Aucun texte lisible.')}</pre></details>`:''}<label class="validator-field">Validation par<input data-validator value="${escape(validator)}" maxlength="100" autocomplete="name"></label><div class="stack"><button class="primary" data-action="validate">Valider cet appareil</button>${device.validatedAt?'<button data-action="invalidate">Remettre à vérifier</button>':''}</div><div class="two-col navigation"><button data-action="previous" ${selected?'':'disabled'}>Précédent</button><button data-action="next" ${selected<session.devices.length-1?'':'disabled'}>Suivant</button></div>`;
+    panel.innerHTML=`<div class="device-heading"><h2>Appareil ${selected+1} sur ${session.devices.length}</h2><span class="badge ${device.validatedAt?'validated':''}">${device.validatedAt?'Validé':'À vérifier'}</span></div><p class="hint">L’OCR fonctionne sur cet appareil, sans PC. Corrigez les propositions avant de valider. Laissez « inconnu » si un marquage est illisible.</p><div class="stack"><button class="primary" data-action="read-one" ${device.validatedAt?'disabled':''}>Lire cette vignette</button><button data-action="read-row">Lire toute cette rangée</button></div><img class="device-preview" src="${previewUrl}" alt="${device.cutoutBlob&&!showOriginal?'Détourage proposé':'Vignette originale'} de l’appareil ${selected+1}"><div class="stack">${device.cutoutBlob?`<button data-action="toggle-cutout">${showOriginal?'Voir le détourage':'Voir l’original'}</button>`:''}<button data-action="export-cutout">Télécharger ce PNG${device.cutoutBlob?' à fond transparent':' original'}</button></div><p class="hint">${escape(device.cutout?.reason||'Vignette originale conservée.')}${device.cutoutBlob?' L’OCR et le ZIP utilisent toujours la vignette originale.':''}</p><div class="label-fields">${FIELDS.map(({key,label})=>`<label>${label}${key==='famille'?`<select data-label="${key}">${FAMILIES.map(f=>`<option ${device.labels[key].valeur===f?'selected':''}>${escape(f)}</option>`).join('')}</select>`:`<input data-label="${key}" value="${escape(device.labels[key].valeur)}" ${key==='modules'?'readonly':''}>`}<small>${escape(levelNames[device.labels[key].niveau]||device.labels[key].niveau)} · ${(device.labels[key].confiance*100).toFixed(0)} %</small></label>`).join('')}</div><p class="hint">Les scores automatiques sont indicatifs. La validation atteste votre lecture de chaque champ.</p>${device.validatedAt?`<p class="validation-note">Validé par ${escape(device.validatedBy)} le ${new Date(device.validatedAt).toLocaleString('fr-FR')}.</p>`:''}${device.recognition?`<details class="recognition-details"><summary>Lecture et limites</summary><p>${escape(device.recognition.limites.join(' '))}</p><pre>${escape(device.recognition.texte||'Aucun texte lisible.')}</pre></details>`:''}<label class="validator-field">Validation par<input data-validator value="${escape(validator)}" maxlength="100" autocomplete="name"></label><div class="stack"><button class="primary" data-action="validate">Valider cet appareil</button>${device.validatedAt?'<button data-action="invalidate">Remettre à vérifier</button>':''}</div><div class="two-col navigation"><button data-action="previous" ${selected?'':'disabled'}>Précédent</button><button data-action="next" ${selected<session.devices.length-1?'':'disabled'}>Suivant</button></div>`;
   }
 }
 function renderThumbs(){
-  thumbnailUrls.forEach(url=>URL.revokeObjectURL(url));thumbnailUrls=[];
+  thumbnailUrls.forEach(url=>URL.revokeObjectURL(url));thumbnailUrls=[];previewUrl='';
   const list=$('#thumbnails');list.replaceChildren();list.hidden=step!=='labels';
   if(step!=='labels')return;
-  session.devices.forEach((d,i)=>{const url=URL.createObjectURL(d.blob);thumbnailUrls.push(url);const button=document.createElement('button');button.dataset.device=String(i);button.className='thumbnail'+(i===selected?' selected':'')+(d.validatedAt?' validated':'');button.setAttribute('aria-label',`Appareil ${i+1}, ${d.validatedAt?'validé':'à vérifier'}`);button.setAttribute('aria-pressed',String(i===selected));const img=new Image();img.src=url;img.alt='';button.append(img,document.createTextNode(String(i+1)));list.append(button);});
+  session.devices.forEach((d,i)=>{const url=URL.createObjectURL(d.cutoutBlob||d.blob);thumbnailUrls.push(url);const button=document.createElement('button');button.dataset.device=String(i);button.className='thumbnail'+(i===selected?' selected':'')+(d.validatedAt?' validated':'');button.setAttribute('aria-label',`Appareil ${i+1}, ${d.validatedAt?'validé':'à vérifier'}`);button.setAttribute('aria-pressed',String(i===selected));const img=new Image();img.src=url;img.alt='';button.append(img,document.createTextNode(String(i+1)));list.append(button);});
+  const device=session.devices[selected];previewUrl=thumbnailUrls[selected];
+  if(showOriginal&&device?.cutoutBlob){previewUrl=URL.createObjectURL(device.blob);thumbnailUrls.push(previewUrl);}
 }
 function render(){
   $('#steps').innerHTML=steps.map(([name,title],i)=>`<button data-step="${name}" aria-current="${step===name?'step':'false'}" ${enabled(name)?'':'disabled'}><span>${i+1}</span>${title}</button>`).join('');
@@ -115,45 +119,55 @@ async function importPhoto(file){
   message('Lecture de la photo…');
   const photo=await loadPhoto(file);
   if(session)await persist();
-  original=photo.canvas;corrected=null;selected=0;calibrating=null;step='capture';
-  session={id:uuid(),seance:group,name:$('#session-name').value.trim()||'Tableau électrique',createdAt:new Date().toISOString(),original:photo.blob,rectified:null,width:photo.width,height:photo.height,points:defaults(photo.width,photo.height),rows:[],devices:[],quality:clarity(original),geometryDirty:false,cutsDirty:false};
+  original=photo.canvas;corrected=null;selected=0;showOriginal=false;calibrating=null;step='capture';
+  session={id:uuid(),seance:group,name:$('#session-name').value.trim()||'Tableau électrique',createdAt:new Date().toISOString(),original:photo.blob,rectified:null,width:photo.width,height:photo.height,points:defaults(photo.width,photo.height),pointsSource:'original',rows:[],devices:[],quality:clarity(original),geometryDirty:false,cutsDirty:false};
   revision=1;savedRevision=0;message(session.quality.warning||'Photo chargée. Vérifiez les marquages, puis cadrez le tableau.');
   try{await persist();await refreshPhotos();}catch(error){fail(error);}
+  render();
+  if(automaticAfterPhoto)await autoAnalyzePhoto();
 }
 async function openPhoto(){
   const id=$('#saved-photos').value;if(!id)return;
   if(session)await persist();
   const loaded=await loadSession(id);if(!loaded)throw Error('Cette photo n’existe plus sur cet appareil.');
+  // Les versions précédentes ne stockaient pas la provenance des coins.
+  // Préserver leurs cadrages enregistrés, y compris ceux encore à appliquer.
+  loaded.pointsSource??='manuel';
   const photo=await loadPhoto(loaded.original),redressed=loaded.rectified?await loadPhoto(loaded.rectified):null;
-  session=loaded;original=photo.canvas;corrected=redressed?.canvas??null;group=session.seance||session.id;selected=0;revision=0;savedRevision=0;
+  session=loaded;original=photo.canvas;corrected=redressed?.canvas??null;group=session.seance||session.id;selected=0;showOriginal=false;revision=0;savedRevision=0;
   $('#session-name').value=session.name;$('#group-id').value=group;preference('seance',group);
   step=enabled('labels')?'labels':enabled('rows')?'rows':'perspective';$('#save-status').textContent='Enregistré sur cet appareil';message('Photo et validations restaurées.');
 }
-async function applyPerspective({replaceConfirmed=false}={}){
+async function applyPerspective({replaceConfirmed=false,signal}={}){
   if(!validateQuad(session.points,session.width,session.height))throw Error('Les coins sont invalides ou se croisent. Suivez le contour dans l’ordre indiqué.');
   if(session.devices.length&&!replaceConfirmed&&!confirm('Le redressement remplacera les vignettes et leurs étiquettes sur cette photo. Continuer ?'))return;
-  message('Redressement en pleine résolution…');
-  const result=await rectify(original,session.points),blob=await pngBlob(result);
-  corrected=result;session.rectified=blob;session.appliedPoints=structuredClone(session.points);session.rows=[];session.devices=[];session.geometryDirty=false;session.cutsDirty=false;selected=0;step='rows';changed();await persist();message('Image redressée. Ajoutez ou proposez les rangées, puis vérifiez leur échelle.');
+  analysisStage('Redressement…');checkAnalysis(signal);
+  // Un cadrage inchangé ne justifie ni rééchantillonnage ni copie de tous les pixels.
+  const full=defaults(original.width,original.height).every((p,i)=>Math.abs(p.x-session.points[i].x)<.01&&Math.abs(p.y-session.points[i].y)<.01);
+  const result=full?original:await rectify(original,session.points,{signal,onProgress:progress=>{$('#analysis-meter').value=progress;}}),blob=await pngBlob(result);
+  checkAnalysis(signal);
+  corrected=result;session.rectified=blob;session.appliedPoints=structuredClone(session.points);session.rows=[];session.devices=[];session.geometryDirty=false;session.cutsDirty=false;selected=0;showOriginal=false;step='rows';changed();await persist();message('Image redressée. Ajoutez ou proposez les rangées, puis vérifiez leur échelle.');
 }
 function addRow(){const height=corrected.height;session.rows.push({top:Math.round(height*.2),bottom:Math.round(height*.8),left:0,right:corrected.width,modules:1,cuts:[0,1],calibrationConfirmed:false});editRows();message('Rangée ajoutée : ajustez ses limites puis renseignez son échelle ou repérez un appareil de 18 mm.');}
-function layoutSample(){
-  const sample=document.createElement('canvas'),scale=Math.min(1,1100/corrected.width,1100/corrected.height);sample.width=Math.max(1,Math.round(corrected.width*scale));sample.height=Math.max(1,Math.round(corrected.height*scale));sample.getContext('2d').drawImage(corrected,0,0,sample.width,sample.height);
-  return {image:sample.getContext('2d').getImageData(0,0,sample.width,sample.height),sx:corrected.width/sample.width,sy:corrected.height/sample.height};
+function layoutSample(source=corrected,maximum=1100){
+  const sample=document.createElement('canvas'),scale=Math.min(1,maximum/source.width,maximum/source.height);sample.width=Math.max(1,Math.round(source.width*scale));sample.height=Math.max(1,Math.round(source.height*scale));sample.getContext('2d').drawImage(source,0,0,sample.width,sample.height);
+  return {image:sample.getContext('2d').getImageData(0,0,sample.width,sample.height),sx:source.width/sample.width,sy:source.height/sample.height};
 }
-function proposeRows(){
+async function proposeRows({signal}={}){
   if(session.rows.length&&!confirm('Remplacer les rangées et leurs séparations manuelles par une nouvelle proposition ?'))return;
-  detectLayout();
+  return detectLayout({signal});
 }
-function detectLayout(){
-  const {image,sx,sy}=layoutSample(),result=analyzeLayout(image);
+async function detectLayout({signal}={}){
+  analysisStage('Recherche des rangées et du pas de 18 mm…');checkAnalysis(signal);
+  const {image,sx,sy}=layoutSample(),result=await calculateImage('rangées',image,{signal});
+  checkAnalysis(signal);
   session.rows=result.rows.map(r=>({...r,top:r.top*sy,bottom:r.bottom*sy,left:r.left*sx,right:r.right*sx,calibrationConfirmed:true,scale:{...r.scale,pixelsPerModule:r.scale.pixelsPerModule*sx,pixelsPerMillimeter:r.scale.pixelsPerMillimeter*sx}}));
   // Une bande non calibrée peut être corrigée, mais ne devient pas une rangée de 13 modules.
-  if(!session.rows.length)session.rows=suggestRows(image).map(r=>({...r,top:r.top*sy,bottom:r.bottom*sy,left:0,right:corrected.width,modules:1,cuts:[0,1],calibrationConfirmed:false}));
-  session.layoutWarnings=result.warnings;editRows();message(result.rows.length?`${result.rows.length} rangées proposées avec échelle estimée et limites de façades. Vérifiez les appareils larges.`:'Échelle incertaine. Repérez un appareil de 18 mm ou indiquez le nombre réel de modules dans les bandes proposées.');
+  if(!session.rows.length)session.rows=result.bands.map(r=>({...r,top:r.top*sy,bottom:r.bottom*sy,left:0,right:corrected.width,modules:1,cuts:[0,1],calibrationConfirmed:false}));
+  session.layoutWarnings=result.warnings;editRows();message(result.rows.length?String(result.rows.length)+' rangées proposées avec échelle estimée et limites de façades. Vérifiez les appareils larges.':'Échelle incertaine. Repérez un appareil de 18 mm ou indiquez le nombre réel de modules dans les bandes proposées.');
   return result.rows.length>0;
 }
-async function crop({replaceConfirmed=false}={}){
+async function crop({replaceConfirmed=false,signal}={}){
   if(!session.rows.length||!session.rows.every(r=>validateRow(r,corrected.width,corrected.height)))throw Error('Vérifiez les limites, le nombre de modules et les séparations de chaque rangée.');
   if(session.rows.some(r=>r.calibrationConfirmed===false))throw Error('Échelle inconnue : renseignez le nombre de modules ou repérez les deux bords d’un appareil de 18 mm.');
   const ordered=[...session.rows].sort((a,b)=>a.top-b.top);
@@ -161,38 +175,62 @@ async function crop({replaceConfirmed=false}={}){
   if(session.devices.length&&!replaceConfirmed&&!confirm('Ce découpage remplacera les vignettes et leurs étiquettes sur cette photo. Continuer ?'))return;
   const devices=[];const started=performance.now();
   for(const [rowIndex,row] of ordered.entries())for(const rect of deviceRects(row,corrected.width)){
-    message(`Découpage : appareil ${devices.length+1}…`);
+    checkAnalysis(signal);analysisStage(`Découpage et détourage : appareil ${devices.length+1}…`);
     const labels=createLabels();labels.modules={valeur:rect.modules,confiance:row.scale?.confidence??0,niveau:row.scale?.source==='separations-visibles'?'geometrie':row.calibrationConfirmed?'calibration':'decoupage'};
-    devices.push({id:uuid(),rowIndex,rect,blob:await cropDevice(corrected,rect),labels,validatedAt:null,validatedBy:null});
+    const blob=await cropDevice(corrected,rect);checkAnalysis(signal);
+    const cutout=await cutoutDevice(blob,{signal});checkAnalysis(signal);
+    devices.push({id:uuid(),rowIndex,rect,blob,cutoutBlob:cutout.blob,cutout:cutout.details,labels,validatedAt:null,validatedBy:null});
   }
-  session.devices=devices;session.rows=ordered;session.cutsDirty=false;session.cropDurationMs=Math.round(performance.now()-started);selected=0;step='labels';changed();await persist();message(`${devices.length} vignettes créées en ${(session.cropDurationMs/1000).toFixed(2)} s sur cet appareil. Vérifiez chaque vignette avant de valider.`);
+  checkAnalysis(signal);session.devices=devices;session.rows=ordered;session.cutsDirty=false;session.cropDurationMs=Math.round(performance.now()-started);selected=0;showOriginal=false;step='labels';changed();await persist();message(`${devices.length} vignettes créées en ${(session.cropDurationMs/1000).toFixed(2)} s sur cet appareil. Vérifiez chaque vignette avant de valider.`);
   return true;
 }
 async function validate(){const d=validateDevice(session.devices[selected],$('#validator').value);session.devices[selected]=d;changed();await persist();await refreshPhotos();message('Appareil validé. Toute correction ultérieure demandera une nouvelle validation.');}
-async function readDevices(indices){
-  if(analysisController)throw Error('Une analyse locale est déjà en cours.');
-  analysisController=new AbortController();const {signal}=analysisController,progress=$('#analysis-progress'),meter=$('#analysis-meter'),text=$('#analysis-status');
-  progress.hidden=false;let finished=0,proposals=0;const started=performance.now();
-  try{
-    for(const index of indices){
-      if(signal.aborted)throw new DOMException('Analyse annulée. Les propositions terminées sont conservées.','AbortError');
-      const device=session.devices[index];if(device.validatedAt)continue;
-      selected=index;render();
-      const result=await recognizeLocal(device.blob,{signal,onProgress:event=>{text.textContent=`Appareil ${finished+1}/${indices.length} · ${event.status}…`;meter.value=(finished+event.progress)/indices.length;}});
-      proposals+=mergeRecognition(device,result);device.recognition={texte:result.texte,limites:result.limites??[],preuves:result.preuves??[],moteur:result.moteur};changed();finished++;meter.value=finished/indices.length;
-      await new Promise(resolve=>setTimeout(resolve,0));
-    }
-    session.analysisDurationMs=Math.round(performance.now()-started);
-    selected=indices[0]??selected;
-    message(`Analyse terminée sur cet appareil : ${finished} vignettes, ${proposals} propositions en ${(session.analysisDurationMs/1000).toFixed(1)} s. Vérifiez les résultats avant de valider.`);
-  }finally{analysisController=null;progress.hidden=true;await persist();await refreshPhotos();}
+function checkAnalysis(signal){
+  if(signal?.aborted)throw new DOMException('Analyse annulée. La photo et les propositions terminées sont conservées.','AbortError');
 }
+function analysisStage(status){
+  $('#analysis-status').textContent=status;$('#analysis-meter').removeAttribute('value');message(status);
+}
+async function withAnalysis(action){
+  if(analysisController)throw Error('Une analyse locale est déjà en cours.');
+  analysisController=new AbortController();const {signal}=analysisController;
+  $('#analysis-progress').hidden=false;
+  try{return await action(signal);}
+  finally{analysisController=null;$('#analysis-progress').hidden=true;await persist();await refreshPhotos();}
+}
+async function readDevicesCore(indices,signal){
+  const meter=$('#analysis-meter'),text=$('#analysis-status');let finished=0,proposals=0;const started=performance.now();
+  for(const index of indices){
+    checkAnalysis(signal);
+    const device=session.devices[index];if(device.validatedAt)continue;
+    selected=index;showOriginal=false;render();
+    const result=await recognizeLocal(device.blob,{signal,onProgress:event=>{text.textContent='Appareil '+(finished+1)+'/'+indices.length+' · '+event.status+'…';meter.value=(finished+event.progress)/indices.length;}});
+    checkAnalysis(signal);
+    proposals+=mergeRecognition(device,result);device.recognition={texte:result.texte,limites:result.limites??[],preuves:result.preuves??[],moteur:result.moteur};changed();finished++;meter.value=finished/indices.length;
+    await new Promise(resolve=>setTimeout(resolve,0));
+  }
+  checkAnalysis(signal);session.analysisDurationMs=Math.round(performance.now()-started);
+  selected=indices[0]??selected;
+  message('Analyse terminée sur cet appareil : '+finished+' vignettes, '+proposals+' propositions en '+(session.analysisDurationMs/1000).toFixed(1)+' s. Vérifiez les résultats avant de valider.');
+}
+async function readDevices(indices){return withAnalysis(signal=>readDevicesCore(indices,signal));}
 async function autoAnalyzePhoto(){
   if(!session)throw Error('Prenez ou importez une photo.');
   if(session.devices.length&&!confirm('Reprendre l’analyse automatique remplacera les découpes et les étiquettes de cette photo. Continuer ?'))return;
-  if(!corrected||session.geometryDirty)await applyPerspective({replaceConfirmed:true});
-  step='rows';if(!detectLayout()){await persist();return;}
-  await crop({replaceConfirmed:true});await readDevices(session.devices.map((_,i)=>i));
+  return withAnalysis(async signal=>{
+    analysisStage('Recherche du cadrage sur cet appareil…');
+    if(!corrected||session.geometryDirty){
+      if(session.pointsSource!=='manuel'){
+        const {image,sx,sy}=layoutSample(original,900),framing=await calculateImage('cadrage',image,{signal});checkAnalysis(signal);
+        const points=framing.points?.map(p=>({x:p.x*sx,y:p.y*sy}));
+        session.framing={...framing,points};
+        if(points&&framing.confiance>=.8&&validateQuad(points,original.width,original.height)){session.points=points;session.pointsSource='geometrie';changed();}
+      }
+      await applyPerspective({replaceConfirmed:true,signal});
+    }
+    checkAnalysis(signal);step='rows';if(!await detectLayout({signal}))return;
+    await crop({replaceConfirmed:true,signal});await readDevicesCore(session.devices.map((_,i)=>i),signal);
+  });
 }
 export async function createCurrentBatch(){
   if(busy)throw Error('Attendez la fin de l’opération de collecte en cours.');
@@ -230,6 +268,12 @@ async function exportGroup(){
   message(`ZIP préparé : ${count} appareils validés de la séance. Les appareils à vérifier sont exclus.${unsaved?' Attention : la photo ouverte n’a pas pu être sauvegardée sur cet appareil.':''}`);
 }
 
+function exportDevicePNG(){
+  const device=session.devices[selected],url=URL.createObjectURL(device.cutoutBlob||device.blob),a=document.createElement('a');
+  a.href=url;a.download='appareil-'+(selected+1)+(device.cutoutBlob?'-detoure.png':'-original.png');document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  message(device.cutoutBlob?'PNG détouré préparé. Vérifiez le contour sur l’aperçu et comparez avec l’original.':'PNG original préparé : le fond n’a pas pu être retiré avec assez de confiance.');
+}
+
 function pointerCoordinates(event){const canvas=$('#photo-canvas'),r=canvas.getBoundingClientRect(),source=step==='perspective'?original:corrected;return {x:Math.max(0,Math.min(source.width,(event.clientX-r.left)/r.width*source.width)),y:Math.max(0,Math.min(source.height,(event.clientY-r.top)/r.height*source.height)),threshold:24/r.width*source.width};}
 function pointerDown(event){
   if(busy||!['perspective','rows'].includes(step))return;
@@ -259,21 +303,22 @@ function pointerDown(event){
 function pointerMove(event){if(!drag||busy)return;const p=pointerCoordinates(event);if(drag.point!==undefined){session.points[drag.point]={x:p.x,y:p.y};editGeometry();}else{const row=session.rows[drag.row];row[drag.bound]=drag.bound==='top'?Math.min(row.bottom-1,Math.round(p.y)):Math.max(row.top+1,Math.round(p.y));editRows();}draw();}
 
 export async function mountWorkspace(){
-  $('#workspace').innerHTML=`<div class="intro"><div><h1>Analyser un tableau</h1><p id="summary"></p></div><button class="primary" id="export" data-action="export" disabled>Exporter la séance en ZIP</button></div><details class="session-options" id="session-details"><summary>Informations de séance et de validation</summary><section class="session-bar" aria-label="Séance de collecte"><label>Nom du tableau<input id="session-name" value="Tableau électrique" maxlength="100"></label><label>Séance photo<input id="group-id" value="${escape(group)}" maxlength="100" aria-describedby="group-hint"></label><label>Votre nom ou vos initiales<input id="validator" value="${escape(validator)}" maxlength="100" autocomplete="name"></label><button data-action="new-group">Nouvelle séance</button><p class="hint" id="group-hint">Gardez le même identifiant de séance pour les photos prises ensemble. Le ZIP regroupe les photos de cette séance.</p></section></details><div class="photo-library"><label class="sr-only" for="saved-photos">Photos enregistrées</label><select id="saved-photos"><option value="">Choisir une photo enregistrée</option></select><button data-action="open">Ouvrir</button><button data-action="delete" class="danger">Supprimer</button><span id="save-status" role="status">Aucune photo ouverte</span></div><nav class="steps" id="steps" aria-label="Étapes de collecte"></nav><p id="message" role="status" aria-live="polite">Commencez par une photo du tableau ou importez une image.</p><div class="workbench"><div class="photo-column"><div class="stage"><div id="empty-photo"><img src="./icons/tableau.svg" width="96" height="96" alt=""><h2>Votre tableau, appareil par appareil</h2><p>Une image nette et cadrée facilite la lecture des marquages.</p><div class="stack"><button class="primary" data-action="camera">Prendre une photo</button><button data-action="import">Importer une photo</button></div></div><canvas id="photo-canvas" hidden aria-label="Photo de travail. Les coins et limites sont également réglables avec les champs du panneau."></canvas></div><p id="photo-info" class="hint"></p><div id="thumbnails" class="thumbnails" aria-label="Appareils découpés" hidden></div></div><aside id="tools" aria-label="Outils de collecte"></aside></div><input type="file" id="import-file" accept="image/*" hidden><input type="file" id="camera-file" accept="image/*" capture="environment" hidden>`;
+  $('#workspace').innerHTML=`<div class="intro"><div><h1>Analyser un tableau</h1><p id="summary"></p></div><button class="primary" id="export" data-action="export" disabled>Exporter la séance en ZIP</button></div><details class="session-options" id="session-details"><summary>Informations de séance et de validation</summary><section class="session-bar" aria-label="Séance de collecte"><label>Nom du tableau<input id="session-name" value="Tableau électrique" maxlength="100"></label><label>Séance photo<input id="group-id" value="${escape(group)}" maxlength="100" aria-describedby="group-hint"></label><label>Votre nom ou vos initiales<input id="validator" value="${escape(validator)}" maxlength="100" autocomplete="name"></label><button data-action="new-group">Nouvelle séance</button><p class="hint" id="group-hint">Gardez le même identifiant de séance pour les photos prises ensemble. Le ZIP regroupe les photos de cette séance.</p></section></details><div class="photo-library"><label class="sr-only" for="saved-photos">Photos enregistrées</label><select id="saved-photos"><option value="">Choisir une photo enregistrée</option></select><button data-action="open">Ouvrir</button><button data-action="delete" class="danger">Supprimer</button><span id="save-status" role="status">Aucune photo ouverte</span></div><label class="automatic-option"><input type="checkbox" id="auto-after-photo" ${automaticAfterPhoto?'checked':''}>Analyser automatiquement après la photo <small>Sur cet appareil, sans PC.</small></label><nav class="steps" id="steps" aria-label="Étapes de collecte"></nav><p id="message" role="status" aria-live="polite">Commencez par une photo du tableau ou importez une image.</p><div class="workbench"><div class="photo-column"><div class="stage"><div id="empty-photo"><img src="./icons/tableau.svg" width="96" height="96" alt=""><h2>Votre tableau, appareil par appareil</h2><p>Une image nette et cadrée facilite la lecture des marquages.</p><div class="stack"><button class="primary" data-action="camera">Prendre une photo</button><button data-action="import">Importer une photo</button></div></div><canvas id="photo-canvas" hidden aria-label="Photo de travail. Les coins et limites sont également réglables avec les champs du panneau."></canvas></div><p id="photo-info" class="hint"></p><div id="thumbnails" class="thumbnails" aria-label="Appareils découpés" hidden></div></div><aside id="tools" aria-label="Outils de collecte"></aside></div><input type="file" id="import-file" accept="image/*" hidden><input type="file" id="camera-file" accept="image/*" capture="environment" hidden>`;
   preference('seance',group);
   $('#workspace').addEventListener('click',event=>{
     const button=event.target.closest('button');if(!button||button.disabled||busy)return;
     if(button.dataset.step){calibrating=null;step=button.dataset.step;render();return;}
-    if(button.dataset.device!==undefined){selected=Number(button.dataset.device);render();return;}
+    if(button.dataset.device!==undefined){selected=Number(button.dataset.device);showOriginal=false;render();return;}
     const action=button.dataset.action;
     if(action==='import'||action==='camera'){$(action==='camera'?'#camera-file':'#import-file').click();return;}
-    const actions={rectify:applyPerspective,crop,validate,suggest:proposeRows,'add-row':addRow,open:openPhoto,export:exportGroup,
+    const actions={rectify:()=>withAnalysis(signal=>applyPerspective({signal})),crop:()=>withAnalysis(signal=>crop({signal})),validate,suggest:()=>withAnalysis(signal=>proposeRows({signal})),'add-row':addRow,open:openPhoto,export:exportGroup,
       'auto-analyze':autoAnalyzePhoto,'read-one':()=>readDevices([selected]),'read-row':()=>readDevices(session.devices.flatMap((d,i)=>d.rowIndex===session.devices[selected].rowIndex&&!d.validatedAt?[i]:[])),
-      'crop-read':async()=>{if(await crop())await readDevices(session.devices.map((_,i)=>i));},
+      'crop-read':()=>withAnalysis(async signal=>{if(await crop({signal}))await readDevicesCore(session.devices.map((_,i)=>i),signal);}),
+      'toggle-cutout':()=>{showOriginal=!showOriginal;},'export-cutout':exportDevicePNG,
       'calibrate-row':()=>{calibrating={row:Number(button.dataset.index),first:null};message('Touchez les deux bords verticaux d’un appareil connu d’un module (18 mm), dans cette rangée.');},
       'reset-points':()=>{session.points=defaults(session.width,session.height);editGeometry();},
       'remove-row':()=>{session.rows.splice(Number(button.dataset.index),1);editRows();},
-      previous:()=>{selected--;},next:()=>{selected++;},
+      previous:()=>{selected--;showOriginal=false;},next:()=>{selected++;showOriginal=false;},
       invalidate:async()=>{session.devices[selected]=invalidateDevice(session.devices[selected]);changed();await persist();await refreshPhotos();message('Appareil remis à vérifier.');},
       'new-group':async()=>{if(session)await persist();session=null;original=null;corrected=null;step='capture';group=newGroup();preference('seance',group);$('#group-id').value=group;$('#save-status').textContent='Nouvelle séance';message('Nouvelle séance prête. Prenez ou importez les photos de cette prise de vue.');},
       delete:async()=>{const id=$('#saved-photos').value;if(!id)return;if(!confirm('Supprimer cette photo et ses validations de cet appareil ?'))return;if(session?.id===id){clearTimeout(saveTimer);await saveChain.catch(()=>{});session=null;original=null;corrected=null;step='capture';revision=0;savedRevision=0;}await deleteSession(id);await refreshPhotos();message('Photo supprimée de cet appareil.');}
@@ -281,6 +326,7 @@ export async function mountWorkspace(){
     if(actions[action])void run(actions[action]);
   });
   for(const selector of ['#import-file','#camera-file'])$(selector).addEventListener('change',event=>{const file=event.target.files[0];event.target.value='';void run(()=>importPhoto(file));});
+  $('#auto-after-photo').addEventListener('change',event=>{automaticAfterPhoto=event.target.checked;preference('auto-after-photo',String(automaticAfterPhoto));});
   $('#session-name').addEventListener('input',event=>{if(session){session.name=event.target.value;changed();}});
   $('#validator').addEventListener('input',event=>{validator=event.target.value;preference('validator',validator);});
   $('#group-id').addEventListener('change',event=>{const value=event.target.value.trim();if(!value){event.target.value=group;return;}group=value;preference('seance',group);if(session){session.seance=group;session.devices=session.devices.map(invalidateDevice);changed();render();message('Séance modifiée : confirmez à nouveau les étiquettes de cette photo.');}});
