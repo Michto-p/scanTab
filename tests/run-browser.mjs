@@ -78,7 +78,7 @@ try {
     if(rowCount!==2)throw Error('Proposition des deux rangées perdue dans l’interface');
     await evaluate(`(()=>{const change=(selector,value,type='input')=>{const node=document.querySelector(selector);node.value=value;node.dispatchEvent(new Event(type,{bubbles:true}));};for(let i=0;i<2;i++){for(const [bound,value]of Object.entries({top:(i?300:70)/520*100,bottom:(i?450:220)/520*100,left:74/720*100,right:646/720*100}))change('[data-row="'+i+'"][data-bound="'+bound+'"]',value);}change('[data-row="0"][data-cuts]','0.5; 2; 4','change');})()`);
     await click('[data-action="crop"]');await idle();
-    if(!await evaluate('document.querySelector("#summary").textContent.startsWith("17 appareils")'))throw Error('Séparations manuelles ignorées');
+    if(!await evaluate('document.querySelector("#summary").textContent.startsWith("17 vignettes proposées")'))throw Error('Séparations manuelles ignorées');
     console.log('Découpage synthétique :',await evaluate('document.querySelector("#message").textContent'));
     await evaluate(`(()=>{const family=document.querySelector('[data-label="famille"]');family.value='disjoncteur';family.dispatchEvent(new Event('input',{bubbles:true}));const validator=document.querySelector('[data-validator]');validator.value='Recette Chrome';validator.dispatchEvent(new Event('input',{bubbles:true}));})()`);
     await click('[data-action="validate"]');await idle();
@@ -93,7 +93,7 @@ try {
     await click('[data-action="validate"]');await idle();
     if(!await evaluate('document.querySelector(".badge").textContent === "Validé"'))throw Error('Validation humaine non conservée');
     await evaluate(`(()=>{const input=document.querySelector('[data-label="calibre"]');input.value='16';input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
-    if(!await evaluate('document.querySelector(".badge").textContent === "À vérifier" && document.querySelector("#summary").textContent.includes("0 validés")'))throw Error('Correction non invalidante');
+    if(!await evaluate('document.querySelector(".badge").textContent === "À vérifier" && document.querySelector("#summary").textContent.includes("0 validées")'))throw Error('Correction non invalidante');
     await click('[data-action="validate"]');await idle();
     const correctedPhotoId=await evaluate('document.querySelector("#saved-photos").value');
     const downloadPath=resolve('.local/qa-downloads-'+Date.now());await mkdir(downloadPath,{recursive:true});

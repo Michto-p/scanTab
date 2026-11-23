@@ -1,4 +1,4 @@
-const CACHE = 'scan-tableau-v9';
+const CACHE = 'scan-tableau-v10';
 const ASSETS = [
   './', './index.html', './app.js', './manifest.webmanifest', './interface/style.css', './icons/tableau.svg', './icons/tableau-192.png', './icons/tableau-512.png', './interface/workspace.js', './interface/pc-panel.js', './connexion/client.js', './interface/labels.js', './capture/photo.js',
   './pretraitement/geometry.js', './pretraitement/image.js', './pretraitement/calcul.js', './pretraitement/calcul-worker.js', './pretraitement/pixels.js', './pretraitement/cadrage.js', './segmentation/rows.js', './segmentation/automatic.js', './segmentation/detourage.js',

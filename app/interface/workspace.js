@@ -51,6 +51,7 @@ function editRows(){session.cutsDirty=true;changed();draw();}
 function widthEditable(device){return device.detection?.scaleKnown===false||!Number.isFinite(device.rect?.modules);}
 function enabled(name){return name==='capture'||(name==='perspective'&&original)||(name==='rows'&&corrected&&!session.geometryDirty)||(name==='labels'&&session?.devices.length&&!session.geometryDirty&&!session.cutsDirty);}
 function updateExportButton(){const validated=session&&(session.devices.some(d=>d.validatedAt)||photosMetadata.some(s=>s.id!==session.id&&s.seance===group&&s.validatedCount>0));$('#export').disabled=!validated||session.geometryDirty||session.cutsDirty;}
+function updateSummary(){$('#summary').textContent=session?`${session.devices.length} vignettes proposées · ${session.devices.filter(d=>d.validatedAt).length} validées sur cette photo`:'Une ou plusieurs photos → appareils repérés → lecture et vérification.';}
 
 function draw(){
   const canvas=$('#photo-canvas'),source=step==='perspective'||!corrected?original:corrected;
@@ -115,7 +116,7 @@ function renderThumbs(){
 function render(){
   $('#steps').innerHTML=steps.map(([name,title],i)=>`<button data-step="${name}" aria-current="${step===name?'step':'false'}" ${enabled(name)?'':'disabled'}><span>${i+1}</span>${title}</button>`).join('');
   updateExportButton();
-  $('#summary').textContent=session?`${session.devices.length} vignettes proposées · ${session.devices.filter(d=>d.validatedAt).length} validées sur cette photo`:'Une ou plusieurs photos → appareils repérés → lecture et vérification.';
+  updateSummary();
   renderThumbs();renderPanel();draw();
 }
 async function refreshPhotos(){
@@ -410,7 +411,7 @@ export async function mountWorkspace(){
     if(input.dataset.point!==undefined){const value=Number(input.value);if(!input.value||value<0||value>100)return;session.points[Number(input.dataset.point)][input.dataset.axis]=value/100*(input.dataset.axis==='x'?session.width:session.height);editGeometry();return;}
     if(input.dataset.label){const key=input.dataset.label;if(key==='modules'&&!widthEditable(session.devices[selected]))return;const provenance=input.closest('label')?.querySelector('small');if(provenance)provenance.textContent='Saisie en cours · à confirmer';const d=session.devices[selected];d.labels[key]={valeur:input.value.trim()||'inconnu',confiance:0,niveau:'manuel'};refreshReadingAfterCorrection(d);
       const widthInput=$('[data-label="modules"]');if(key!=='modules'&&widthInput&&widthInput.value!==String(d.labels.modules.valeur)){widthInput.value=d.labels.modules.valeur;widthInput.closest('label').querySelector('small').textContent=(levelNames[d.labels.modules.niveau]||d.labels.modules.niveau)+' · '+Math.round(d.labels.modules.confiance*100)+' %';}
-      if($('.dimension-note'))$('.dimension-note').outerHTML=dimensionPanel(d);session.devices[selected]=invalidateDevice(d);changed();updateExportButton();$('#summary').textContent=`${session.devices.length} appareils · ${session.devices.filter(d=>d.validatedAt).length} validés sur cette photo`;document.querySelector(`[data-device="${selected}"]`)?.classList.remove('validated');const badge=$('#tools .badge');if(badge){badge.textContent='À vérifier';badge.classList.remove('validated');}$('#tools .validation-note')?.remove();return;}
+      if($('.dimension-note'))$('.dimension-note').outerHTML=dimensionPanel(d);session.devices[selected]=invalidateDevice(d);changed();updateExportButton();updateSummary();document.querySelector(`[data-device="${selected}"]`)?.classList.remove('validated');const badge=$('#tools .badge');if(badge){badge.textContent='À vérifier';badge.classList.remove('validated');}$('#tools .validation-note')?.remove();return;}
     if(input.dataset.bound){const row=session.rows[Number(input.dataset.row)],bound=input.dataset.bound,max=['left','right'].includes(bound)?corrected.width:corrected.height;row[bound]=Math.round(Number(input.value)/100*max);editRows();return;}
   });
   $('#tools').addEventListener('change',event=>{

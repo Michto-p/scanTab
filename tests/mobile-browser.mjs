@@ -219,7 +219,7 @@ function startAutonomousUIQA({source,annotation,appBase}) {
           if(key!=='modules')assert(device.labels[key].confiance>=.8&&device.labels[key].niveau!=='manuel','Appareil '+(index+1)+' : score ou provenance automatique perdu.');
         }
       }
-      assert(document.querySelector('#summary').textContent.includes('0 validés'),'Le parcours a créé des validations humaines.');
+      assert(document.querySelector('#summary').textContent.includes('0 validées'),'Le compteur ne reflète pas les vignettes encore non validées.');
       qa.tests.push({nom:'Les marquages proposent différentiel, disjoncteur et contacteur sans PC',succes:true});
       qa.readings=session.devices.map(device=>({modules:device.rect.modules,champs:device.labels,texte:device.recognition?.texte}));
       // Le signal est envoyé pendant une vraie reconnaissance dans le worker,
