@@ -1,0 +1,11 @@
+{
+  "width": 960,
+  "height": 720,
+  "source": "https://commons.wikimedia.org/wiki/File:Armoire_electrique_domotique.JPG",
+  "usage": "Régression géométrique uniquement ; aucune étiquette électrique ni donnée d’apprentissage.",
+  "regions": [
+    {"nom": "Rangée centrale haute", "left": 84, "right": 465, "top": 218, "bottom": 272},
+    {"nom": "Rangée centrale basse", "left": 88, "right": 517, "top": 365, "bottom": 419}
+  ],
+  "limites": ["Bandes de recette approximatives, sans comptage certifié des appareils.", "Miniature agrandie depuis une image ancienne de 640 × 480 ; marquages trop petits pour une référence certaine."]
+}

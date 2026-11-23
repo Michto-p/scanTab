@@ -1,0 +1,28 @@
+{
+  "synthetique": true,
+  "limites": "Scènes raster artificielles pour exercer les largeurs et espaces ; aucune mesure de précision sur photo réelle.",
+  "width": 900,
+  "height": 360,
+  "pitch": 40,
+  "left": 85,
+  "top": 80,
+  "bottom": 260,
+  "scenes": [
+    { "nom": "prise-2.5-en-fin", "widths": [2, 1, 1, 1, 2.5], "modules": [2, 1, 1, 1, 2.5] },
+    { "nom": "prise-2.5-au-debut", "widths": [2.5, 2, 1, 1, 1], "modules": [2.5, 2, 1, 1, 1] },
+    { "nom": "demi-modules-aux-extremites", "widths": [0.5, 1, 1, 1, 2, 0.5], "modules": [0.5, 1, 1, 1, 2, 0.5] },
+    { "nom": "espace-un-module", "widths": [2, 1, 1, 1, 2.5], "gaps": [0, 0, 1, 0], "modules": [2, 1, 1, 1, 2.5], "groups": 2 },
+    { "nom": "espace-hors-pas-DIN", "widths": [2, 1, 1, 1, 2.5], "gaps": [0.7, 0, 0, 0], "modules": [2, 1, 1, 1, 2.5], "groups": 2 },
+    { "nom": "groupes-separes-sans-origine-commune", "widths": [1, 1, 1, 2, 2.5], "gaps": [0, 0, 2.3, 0.7], "modules": [1, 1, 1, 2, 2.5], "groups": 3 },
+    { "nom": "seulement-appareils-larges", "widths": [2, 2.5, 4], "modules": [null, null, null], "unknown": true },
+    { "nom": "prise-isolee-sans-etalon", "widths": [2.5], "modules": [null], "unknown": true }
+  ],
+  "unknownRegression": { "width": 900, "height": 500, "pitch": 38, "left": 80, "rows": [{ "top": 65, "bottom": 160, "widths": [2.5] }, { "top": 280, "bottom": 375, "widths": [2, 1, 1, 1, 2.5] }] },
+  "regressions": [
+    { "nom": "deux-rangees-objet-contraste-voisin", "width": 1000, "height": 600, "pitch": 28, "left": 60, "clutter": true, "rows": [{ "top": 145, "bottom": 223, "widths": [2, 1, 1, 1, 1, 1, 1, 1, 1, 2.5] }, { "top": 345, "bottom": 423, "widths": [1, 1, 1, 2, 2.5, 1, 1, 1, 1, 1] }] },
+    { "nom": "facades-masquees-plastron", "width": 900, "height": 420, "pitch": 38, "left": 80, "rows": [{ "top": 160, "bottom": 255, "widths": [2, 1, 1, 1, 2.5] }] },
+    { "nom": "plastron-legerement-incline", "width": 1000, "height": 600, "pitch": 28, "left": 60, "clutter": true, "slope": 7, "rows": [{ "top": 145, "bottom": 223, "widths": [2, 1, 1, 1, 1, 1, 1, 1, 1, 2.5] }, { "top": 345, "bottom": 423, "widths": [1, 1, 1, 2, 2.5, 1, 1, 1, 1, 1] }] },
+    { "nom": "joints-faibles-et-bords-forts", "width": 900, "height": 420, "pitch": 38, "left": 80, "weakSeams": true, "rows": [{ "top": 160, "bottom": 265, "widths": [2, 1, 1, 1, 2.5] }] },
+    { "nom": "bords-imprecis-conserver-phase-ajustee", "width": 900, "height": 420, "pitch": 38, "left": 80, "jitter": [3, -2, 2, -2, 2, -2, 1], "rows": [{ "top": 160, "bottom": 265, "widths": [1, 1, 1, 1, 1, 2.5] }] }
+  ]
+}
