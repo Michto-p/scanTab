@@ -1,4 +1,4 @@
-export const FAMILIES = Object.freeze(['inconnu','disjoncteur','interrupteur différentiel','disjoncteur différentiel','interrupteur sectionneur','contacteur','télérupteur','parafoudre','porte-fusible','minuterie','transformateur','autre']);
+export const FAMILIES = Object.freeze(['inconnu','disjoncteur','interrupteur différentiel','disjoncteur différentiel','interrupteur sectionneur','prise modulaire','contacteur','télérupteur','parafoudre','porte-fusible','minuterie','transformateur','autre']);
 export const FIELDS = Object.freeze([
   {key:'famille',label:'Famille'},{key:'marque',label:'Marque'},{key:'reference',label:'Référence'},
   {key:'calibre',label:'Calibre (A)'},{key:'courbe',label:'Courbe'},{key:'sensibilite',label:'Sensibilité (mA)'},
@@ -24,8 +24,12 @@ export function validateDevice(device,validator) {
   if(labels.modules.valeur==='inconnu')labels.modules.valeur=device.rect?.modules??device.modules;
   labels.modules={valeur:moduleCount(labels.modules.valeur),confiance:1,niveau:'manuel'};
   const check=validateLabels(labels,{validator});
-  if(device.rect?.modules!==undefined&&labels.modules.valeur!==device.rect.modules)check.errors.push('La largeur validée doit correspondre au découpage. Corrigez la rangée.');
+  const editableWidth=device.detection?.scaleKnown===false||!Number.isFinite(device.rect?.modules);
+  if(!editableWidth&&labels.modules.valeur!==device.rect.modules)check.errors.push('La largeur validée doit correspondre au découpage. Corrigez la rangée.');
   if(check.errors.length)throw Error(check.errors.join('\n'));
   // Confiance 1 = confirmation humaine, pas une probabilité de reconnaissance.
-  return {...device,labels,validatedAt:new Date().toISOString(),validatedBy:validator.trim()};
+  // Un appareil isolé peut être découpé avant que son échelle soit connue.
+  // Seule cette confirmation humaine renseigne alors sa largeur, sans changer ses pixels.
+  const rect=device.rect&&editableWidth?{...device.rect,modules:labels.modules.valeur}:device.rect;
+  return {...device,rect,labels,validatedAt:new Date().toISOString(),validatedBy:validator.trim()};
 }
