@@ -1,0 +1,93 @@
+{
+  "date": "2026-11-24",
+  "moteur": "Tesseract.js local installé pour le PC, langues eng+fra ; pas une mesure du moteur PWA",
+  "usage": "Recette uniquement, aucune validation humaine ni donnée d’apprentissage.",
+  "results": [
+    {
+      "fichier": "tableau-hager-portrait-commons.disjoncteur-b10.png",
+      "texte": "2.\nOF?\n",
+      "confiance": 0.52,
+      "champs": {
+        "marque": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "reference": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_reference"
+        },
+        "calibre": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "courbe": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "sensibilite": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "classe": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "poles": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        }
+      },
+      "moteur": "tesseract-local"
+    },
+    {
+      "fichier": "tableau-hager-portrait-commons.differentiel-b16.png",
+      "texte": "—_ àüù au\nee\nSee\nCBO2)\n0 86\nTT\n&G Gy\n",
+      "confiance": 0.32,
+      "champs": {
+        "marque": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "reference": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_reference"
+        },
+        "calibre": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "courbe": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "sensibilite": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "classe": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "poles": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        }
+      },
+      "moteur": "tesseract-local"
+    }
+  ]
+}

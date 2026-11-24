@@ -1,0 +1,51 @@
+{
+  "width": 1920,
+  "height": 2623,
+  "source": "https://commons.wikimedia.org/wiki/File:Fuse_box_on_hager_components.JPG",
+  "licence": "CC BY-SA 3.0 ; attribution dans tableau-hager-portrait-commons.LICENCE.md",
+  "usage": "Recette visuelle et OCR uniquement, aucune validation électrique ni donnée d’apprentissage.",
+  "annotation": "Repères manuels externes approximatifs sur la réduction Commons 1920 px, corps complet avec bornes. Les quadrilatères suivent le contour extérieur ; ce ne sont pas des mesures physiques certifiées.",
+  "tolerancePixels": 24,
+  "ordreQuadrilatere": ["haut-gauche", "haut-droit", "bas-droit", "bas-gauche"],
+  "groupes": [
+    {
+      "id": "cinq-simples-hauts",
+      "bounds": {"x": 558, "y": 584, "width": 631, "height": 609},
+      "quad": [{"x":558,"y":587},{"x":1189,"y":582},{"x":1189,"y":1193},{"x":565,"y":1193}],
+      "modulesTotauxVisuels": 5,
+      "appareils": ["QF1", "QF2", "QF3", "QF4", "QF5"],
+      "separationsApproximativesX": [558, 688, 812, 937, 1064, 1189]
+    },
+    {
+      "id": "quatre-larges-bas",
+      "bounds": {"x": 180, "y": 1445, "width": 1009, "height": 593},
+      "quad": [{"x":197,"y":1445},{"x":1189,"y":1444},{"x":1189,"y":2038},{"x":204,"y":2038}],
+      "modulesTotauxVisuels": 8,
+      "appareils": ["RCBO1", "RCBO2", "RCBO3", "RCBO4"],
+      "separationsApproximativesX": [180, 445, 698, 946, 1189]
+    }
+  ],
+  "appareils": [
+    {"id":"sectionneur-isole", "bounds":{"x":171,"y":585,"width":157,"height":602}, "quad":[{"x":193,"y":587},{"x":318,"y":588},{"x":326,"y":1178},{"x":190,"y":1178}], "modulesRelatifsVisuels":1, "marquagesVisibles":["hager","SBN140","40A"], "limite":"Le flanc et le porte-étiquette transparent rendent sa boîte englobante plus large que celle des cinq appareils voisins."},
+    {"id":"QF1", "bounds":{"x":558,"y":584,"width":130,"height":609}, "quad":[{"x":558,"y":587},{"x":688,"y":584},{"x":688,"y":1193},{"x":565,"y":1193}], "modulesRelatifsVisuels":1, "marquagesVisibles":["hager","MB 125A","B25","QF1"]},
+    {"id":"QF2", "bounds":{"x":688,"y":584,"width":124,"height":609}, "quad":[{"x":688,"y":584},{"x":812,"y":585},{"x":812,"y":1193},{"x":688,"y":1193}], "modulesRelatifsVisuels":1, "marquagesVisibles":["hager","MB 110A","B10","QF2"], "cropReference":"tableau-hager-portrait-commons.disjoncteur-b10.png"},
+    {"id":"QF3", "bounds":{"x":812,"y":584,"width":125,"height":609}, "quad":[{"x":812,"y":585},{"x":937,"y":585},{"x":937,"y":1193},{"x":812,"y":1193}], "modulesRelatifsVisuels":1, "marquagesVisibles":["hager","MB 110A","B10","QF3"]},
+    {"id":"QF4", "bounds":{"x":937,"y":584,"width":127,"height":609}, "quad":[{"x":937,"y":585},{"x":1064,"y":584},{"x":1064,"y":1193},{"x":937,"y":1193}], "modulesRelatifsVisuels":1, "marquagesVisibles":["hager","MB 110A","B10","QF4"]},
+    {"id":"QF5", "bounds":{"x":1064,"y":582,"width":125,"height":611}, "quad":[{"x":1064,"y":584},{"x":1189,"y":582},{"x":1189,"y":1193},{"x":1064,"y":1193}], "modulesRelatifsVisuels":1, "marquagesVisibles":["hager","MB 110A","B10","QF5"]},
+    {"id":"RCBO1", "bounds":{"x":180,"y":1445,"width":265,"height":593}, "quad":[{"x":197,"y":1445},{"x":445,"y":1448},{"x":445,"y":2038},{"x":204,"y":2038}], "modulesRelatifsVisuels":2, "marquagesVisibles":["hager","AD 916J","B16","0,03 A","RCBO1"]},
+    {"id":"RCBO2", "bounds":{"x":445,"y":1445,"width":253,"height":593}, "quad":[{"x":445,"y":1448},{"x":698,"y":1447},{"x":698,"y":2038},{"x":445,"y":2038}], "modulesRelatifsVisuels":2, "marquagesVisibles":["hager","AD 916J","B16","0,03 A","RCBO2"], "cropReference":"tableau-hager-portrait-commons.differentiel-b16.png", "cropBounds":{"x":445,"y":1450,"width":253,"height":588}},
+    {"id":"RCBO3", "bounds":{"x":698,"y":1445,"width":248,"height":593}, "quad":[{"x":698,"y":1447},{"x":946,"y":1446},{"x":946,"y":2038},{"x":698,"y":2038}], "modulesRelatifsVisuels":2, "marquagesVisibles":["hager","AD 916J","B16","0,03 A","RCBO3"]},
+    {"id":"RCBO4", "bounds":{"x":946,"y":1444,"width":243,"height":594}, "quad":[{"x":946,"y":1446},{"x":1189,"y":1444},{"x":1189,"y":2038},{"x":946,"y":2038}], "modulesRelatifsVisuels":2, "marquagesVisibles":["hager","AD 960J","C10","0,03 A","RCBO4"]}
+  ],
+  "exclusions": [
+    {"nom":"Bornier entre les appareils hauts", "bounds":{"x":337,"y":750,"width":221,"height":285}, "raison":"Bornier à vis, pas une façade d'appareil modulaire de protection à découper comme les QF."},
+    {"nom":"Rail DIN haut nu", "bounds":{"x":1200,"y":778,"width":535,"height":237}, "raison":"Espace sans appareil, à exclure des vignettes."},
+    {"nom":"Rail DIN bas nu", "bounds":{"x":1200,"y":1590,"width":535,"height":220}, "raison":"Espace sans appareil, à exclure des vignettes."}
+  ],
+  "limites": [
+    "Les largeurs relatives 1 et 2 sont observées dans cette seule rangée ; aucune conversion pixels/mm ni règle universelle par famille n'est affirmée.",
+    "La façade grise et les textes de faible contraste restent difficiles pour l'OCR ; marquagesVisibles est une transcription visuelle, pas le résultat du moteur.",
+    "Les câbles, les ombres, les flancs et les borniers ne doivent pas raccourcir les corps jusqu'à la seule zone du levier ou du texte.",
+    "Le fichier ocr-observe.json conserve les résultats effectivement obtenus, y compris les inconnus."
+  ]
+}

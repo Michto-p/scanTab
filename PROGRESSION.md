@@ -139,6 +139,9 @@ Retour après essai : le logiciel ne trouve toujours pas correctement largeur et
 - [x] Grouper les façades en rangées orientées sans exiger un coffret ni une échelle préalable.
 - [x] Redresser chaque découpe en pleine résolution avant OCR et conserver ses coordonnées source.
 - [ ] Estimer les modules dans le plan redressé et intégrer cette géométrie au parcours existant.
+- [x] Retenir les mots OCR fiables malgré un score global faible, avec un seul secours agrandi et rejet des lectures contradictoires.
 - [ ] Confronter contours, hauteurs, largeurs, PNG et OCR à une photo réelle lisible avant publication ; consigner les échecs restants.
 
 Précision utilisateur : photos avec cache/plastron. La cible est la façade visible, sans reconstituer les bornes cachées. Premier socle vérifié : 14 tests de regroupement/projection/découpage dans le plan, puis une recette Chrome comparant le PNG d'une façade inclinée pixel par pixel au redressement pleine résolution, avec original intact. Les recettes de validation, IndexedDB et ZIP restent fonctionnelles. La détection réelle n'est pas encore validée : la photo ABB de sept façades révèle encore des hauteurs tronquées et un appareil large manqué ; aucune publication de cette tentative tant que ce cas n'est pas corrigé.
+
+OCR vérifié séparément sur des découpes réelles : ABB avec plastron `B16`, Hager simple `C16` après une lecture agrandie ; ABB marque/référence restent inconnues, plusieurs Hager également. Le Hager tripolaire ne fournit que sa marque fiable. Les TSV bruts et les inconnus sont conservés dans `tests/photos/ocr-reel-pwa-observe.json`, sans validation ni apprentissage. Protection ajoutée contre `116 A` fabriqué par une référence fragmentée et `2P` issu du schéma. Les mots gardent le seuil de 80 %, les contradictions ne sont pas départagées par leur score ; 18 tests OCR ciblés réussis. Ces trois découpes ne constituent pas une mesure de précision générale.

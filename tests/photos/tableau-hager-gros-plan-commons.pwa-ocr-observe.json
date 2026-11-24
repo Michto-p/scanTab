@@ -1,0 +1,125 @@
+{
+  "date": "2026-11-24",
+  "moteur": "Vrai recognizeLocal de la PWA, eng+fra embarqués et prétraitement canvas ; ressources servies uniquement par localhost",
+  "usage": "Recette sur photographie publique, aucune validation ni donnée d’apprentissage.",
+  "precision": "Ancien diagnostic avant correction du faux calibre 116 A et ajout du passage de secours. Les valeurs observées ci-dessous sont conservées sans correction rétrospective ; la recette actuelle est ocr-reel-pwa-observe.json.",
+  "status": "moteur_termine_avec_erreurs_de_lecture",
+  "results": [
+    {
+      "fichier": "tableau-hager-gros-plan-commons.simple-c16.png",
+      "champs": {
+        "marque": {
+          "valeur": "Hager",
+          "confiance": 0.8665452600000001,
+          "niveau": "ocr_caracteristiques"
+        },
+        "reference": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_reference"
+        },
+        "calibre": {
+          "valeur": "116 A",
+          "confiance": 0.8665452600000001,
+          "niveau": "ocr_caracteristiques"
+        },
+        "courbe": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "sensibilite": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "classe": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "poles": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "famille": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "regles_ocr"
+        }
+      },
+      "preuves": [
+        "calibre : 116 A"
+      ],
+      "limites": [
+        "Lecture OCR et règles indicatives : confirmation humaine nécessaire. Les scores ne sont pas des probabilités calibrées.",
+        "Lecture retenue mot par mot au seuil de 80 %. Les mots incertains restent exclus ; les contradictions visibles restent à vérifier.",
+        "Marquages insuffisants ou contradictoires pour proposer une famille."
+      ],
+      "format": null,
+      "sources": [],
+      "texte": ";\n\nhager sma\n\nje 116A\n\nq\n\nEco\n\na\n\na =|\n",
+      "confianceOCR": 0.61,
+      "moteur": "tesseract-embarque",
+      "dureeMs": 980
+    },
+    {
+      "fichier": "tableau-hager-gros-plan-commons.triple-b16.png",
+      "champs": {
+        "marque": {
+          "valeur": "Hager",
+          "confiance": 0.83074409,
+          "niveau": "ocr_caracteristiques"
+        },
+        "reference": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_reference"
+        },
+        "calibre": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "courbe": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "sensibilite": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "classe": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "poles": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "ocr_caracteristiques"
+        },
+        "famille": {
+          "valeur": "inconnu",
+          "confiance": 0,
+          "niveau": "regles_ocr"
+        }
+      },
+      "preuves": [],
+      "limites": [
+        "Lecture OCR et règles indicatives : confirmation humaine nécessaire. Les scores ne sont pas des probabilités calibrées.",
+        "Lecture retenue mot par mot au seuil de 80 %. Les mots incertains restent exclus ; les contradictions visibles restent à vérifier.",
+        "Marquages insuffisants ou contradictoires pour proposer une famille."
+      ],
+      "format": null,
+      "sources": [],
+      "texte": "e\n\nhager == eee ©\n\nMB 316A\n\nLS 5\n\n6000)\n\n000\n\n224\n\n6\n\n——\n\nSE\n\nOo OF\n\nOo OFF\n\n7 |\n\nions\n\na\n\n©\n\n=a)\n\nEa\n\nae\n\nEE\n",
+      "confianceOCR": 0.54,
+      "moteur": "tesseract-embarque",
+      "dureeMs": 512
+    }
+  ]
+}

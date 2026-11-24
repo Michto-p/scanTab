@@ -1,0 +1,33 @@
+{
+  "width":1920,
+  "height":590,
+  "source":"https://commons.wikimedia.org/wiki/File:One_row_of_ABB_230V_16A_fuses_in_fuse_box_in_German_shop,_2024_(max_crop).jpg",
+  "licence":"CC0 1.0, Pittigrilli ; source et attribution dans tableau-abb-plastron-commons.LICENCE.md",
+  "usage":"Recette visuelle avec plastron et OCR uniquement ; aucune validation électrique ni donnée d’apprentissage.",
+  "annotation":"Contours externes approximatifs des seules façades visibles, bornes masquées par le plastron. Les espaces et les joints se voient sur presque toute leur hauteur.",
+  "tolerancePixels":12,
+  "ordreQuadrilatere":["haut-gauche","haut-droit","bas-droit","bas-gauche"],
+  "quadRangee":[{"x":42,"y":65},{"x":1870,"y":60},{"x":1862,"y":537},{"x":40,"y":537}],
+  "largeursRelativesVisuelles":[4,1,1,1,1,1,1],
+  "modulesTotauxVisuels":10,
+  "separationsApproximativesX":[35,765,954,1138,1321,1502,1686,1876],
+  "appareils":[
+    {"id":"large-f204a", "quad":[{"x":42,"y":65},{"x":767,"y":61},{"x":758,"y":537},{"x":40,"y":537}], "bounds":{"x":35,"y":58,"width":732,"height":485}, "modulesRelatifsVisuels":4, "marquagesVisibles":["ABB","F204 A","40A","IΔn = 0,03A","TEST"], "limite":"Autres intensités imprimées pour des caractéristiques différentes ; ne pas les confondre avec le calibre nominal."},
+    {"id":"simple-b16-1", "quad":[{"x":775,"y":61},{"x":954,"y":60},{"x":945,"y":537},{"x":765,"y":537}], "bounds":{"x":765,"y":58,"width":189,"height":485}, "modulesRelatifsVisuels":1, "marquagesVisibles":["ABB","S 201","B16"], "cropReference":"tableau-abb-plastron-commons.simple-b16.png"},
+    {"id":"simple-b16-2", "quad":[{"x":961,"y":60},{"x":1138,"y":59},{"x":1126,"y":539},{"x":945,"y":537}], "modulesRelatifsVisuels":1, "marquagesVisibles":["ABB","S 201","B16"]},
+    {"id":"simple-b16-3", "quad":[{"x":1145,"y":60},{"x":1321,"y":60},{"x":1310,"y":539},{"x":1126,"y":539}], "modulesRelatifsVisuels":1, "marquagesVisibles":["ABB","S 201","B16"]},
+    {"id":"simple-b16-4", "quad":[{"x":1329,"y":61},{"x":1502,"y":61},{"x":1497,"y":539},{"x":1310,"y":539}], "modulesRelatifsVisuels":1, "marquagesVisibles":["ABB","S 201","B16"]},
+    {"id":"simple-b16-5", "quad":[{"x":1510,"y":60},{"x":1686,"y":58},{"x":1680,"y":539},{"x":1497,"y":539}], "modulesRelatifsVisuels":1, "marquagesVisibles":["ABB","S 201","B16"]},
+    {"id":"simple-b16-6", "quad":[{"x":1694,"y":59},{"x":1870,"y":60},{"x":1862,"y":537},{"x":1680,"y":539}], "modulesRelatifsVisuels":1, "marquagesVisibles":["ABB","S 201","B16"]}
+  ],
+  "exclusions":[
+    {"nom":"Plastron au-dessus", "bounds":{"x":0,"y":0,"width":1920,"height":45}},
+    {"nom":"Plastron au-dessous et ombres", "bounds":{"x":0,"y":548,"width":1920,"height":42}}
+  ],
+  "limites":[
+    "Les rapports 4 et 1 sont des repères visuels sur cette rangée, pas une mesure physique indépendante ni une règle universelle par famille.",
+    "Le corps et les bornes des appareils sont masqués : la bonne découpe s'arrête à la façade visible, sans tenter d'inventer la partie cachée.",
+    "Les photographies sans plastron du même dossier ont des rapports hauteur/largeur très différents et ne doivent pas imposer leur gabarit à ce cas.",
+    "Les transcriptions visuelles ne sont pas des lectures OCR validées."
+  ]
+}

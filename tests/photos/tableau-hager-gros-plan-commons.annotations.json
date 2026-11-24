@@ -1,0 +1,31 @@
+{
+  "width": 1920,
+  "height": 1082,
+  "source": "https://commons.wikimedia.org/wiki/File:Hager_circuit_breakers.JPG",
+  "licence": "CC BY-SA 3.0, Dmitry G ; attribution dans tableau-hager-gros-plan-commons.LICENCE.md",
+  "usage": "Recette visuelle et OCR uniquement ; aucune validation électrique ni donnée d’apprentissage.",
+  "annotation": "Repères externes approximatifs sur la réduction Commons. Photo sans plastron, corps et bornes visibles. Les neuf appareils simples sont précédés d'un seul appareil large à trois leviers liés.",
+  "tolerancePixels": 18,
+  "ordreQuadrilatere": ["haut-gauche", "haut-droit", "bas-droit", "bas-gauche"],
+  "modulesTotauxVisuels": 12,
+  "largeursRelativesVisuelles": [3,1,1,1,1,1,1,1,1,1],
+  "quadRangee": [{"x":44,"y":164},{"x":1880,"y":132},{"x":1907,"y":864},{"x":58,"y":906}],
+  "appareils": [
+    {"id":"triple-b16", "quad":[{"x":44,"y":164},{"x":501,"y":153},{"x":518,"y":888},{"x":58,"y":906}], "bounds":{"x":35,"y":153,"width":483,"height":758}, "modulesRelatifsVisuels":3, "marquagesVisibles":["hager","MB 316A","B16"], "cropReference":"tableau-hager-gros-plan-commons.triple-b16.png", "limite":"Un seul appareil malgré trois vis et trois leviers solidaires ; les lignes entre ses trois colonnes ne sont pas des frontières d'appareils."},
+    {"id":"simple-c16-1", "quad":[{"x":501,"y":153},{"x":659,"y":151},{"x":671,"y":887},{"x":518,"y":888}], "bounds":{"x":501,"y":152,"width":170,"height":739}, "modulesRelatifsVisuels":1, "marquagesVisibles":["hager","MC 116A","C16"], "cropReference":"tableau-hager-gros-plan-commons.simple-c16.png", "zoneMarquages":{"x":507,"y":317,"width":145,"height":120}},
+    {"id":"simple-c16-2", "quad":[{"x":659,"y":151},{"x":813,"y":148},{"x":826,"y":885},{"x":671,"y":887}], "modulesRelatifsVisuels":1, "marquagesVisibles":["hager","MC 116A","C16"]},
+    {"id":"simple-c16-3", "quad":[{"x":813,"y":148},{"x":970,"y":146},{"x":983,"y":882},{"x":826,"y":885}], "modulesRelatifsVisuels":1, "marquagesVisibles":["hager","MC 116A","C16"]},
+    {"id":"simple-c16-4", "quad":[{"x":970,"y":146},{"x":1128,"y":144},{"x":1139,"y":879},{"x":983,"y":882}], "modulesRelatifsVisuels":1, "marquagesVisibles":["hager","MC 116A","C16"]},
+    {"id":"simple-c16-5", "quad":[{"x":1128,"y":144},{"x":1285,"y":142},{"x":1295,"y":876},{"x":1139,"y":879}], "modulesRelatifsVisuels":1, "marquagesVisibles":["hager","MC 116A","C16"]},
+    {"id":"simple-c16-6", "quad":[{"x":1285,"y":142},{"x":1438,"y":140},{"x":1449,"y":873},{"x":1295,"y":876}], "modulesRelatifsVisuels":1, "marquagesVisibles":["hager","MC 116A","C16"]},
+    {"id":"simple-c16-7", "quad":[{"x":1438,"y":140},{"x":1593,"y":138},{"x":1604,"y":870},{"x":1449,"y":873}], "modulesRelatifsVisuels":1, "marquagesVisibles":["hager","MC 116A","C16"]},
+    {"id":"simple-c10-1", "quad":[{"x":1593,"y":138},{"x":1748,"y":135},{"x":1759,"y":867},{"x":1604,"y":870}], "modulesRelatifsVisuels":1, "marquagesVisibles":["hager","MC 110A","C10"]},
+    {"id":"simple-c10-2", "quad":[{"x":1748,"y":135},{"x":1880,"y":132},{"x":1907,"y":864},{"x":1759,"y":867}], "modulesRelatifsVisuels":1, "marquagesVisibles":["hager","MC 110A","C10"]}
+  ],
+  "limites": [
+    "Les transcriptions marquagesVisibles sont visuelles et n'ont pas été confirmées par catalogue constructeur.",
+    "Une bonne géométrie exige le corps complet dans ce cas sans plastron ; les cas avec cache doivent suivre les seules façades visibles.",
+    "Les vignettes complètes comportent des vis, des schémas et des leviers ; ceux-ci peuvent dégrader le score OCR global malgré quelques mots fiables.",
+    "L'ancien résultat OCR de recette a confondu le fragment 116A de MC116A avec un calibre : cette erreur doit rester visible dans les résultats observés."
+  ]
+}
