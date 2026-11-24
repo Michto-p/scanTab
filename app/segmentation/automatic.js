@@ -401,6 +401,98 @@ export function analyzeLayout(imageData) {
   return { ...recovered, warnings: ['Rangées proposées par recherche locale : vérifier les limites, les appareils larges et les zones non retrouvées.', 'Les autres zones restent inconnues lorsque leurs séparations ne sont pas suffisamment fiables.'] };
 }
 
+function selectionImage(imageData, bounds) {
+  const factor = Math.max(1, Math.max(bounds.width, bounds.height) / 1100);
+  const width = Math.max(1, Math.round(bounds.width / factor)), height = Math.max(1, Math.round(bounds.height / factor));
+  const pixels = new Float32Array(width * height);
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    const sx = Math.min(imageData.width - 1, Math.floor(bounds.x + (x + .5) * bounds.width / width));
+    const sy = Math.min(imageData.height - 1, Math.floor(bounds.y + (y + .5) * bounds.height / height));
+    const index = (sy * imageData.width + sx) * 4, alpha = imageData.data[index + 3] / 255;
+    pixels[y * width + x] = (.2126 * imageData.data[index] + .7152 * imageData.data[index + 1] + .0722 * imageData.data[index + 2]) * alpha + 255 * (1 - alpha);
+  }
+  return { width, height, pixels, scaleX: bounds.width / width, scaleY: bounds.height / height };
+}
+
+function selectionTexture(image, left, right) {
+  // Écarter les espaces uniformes en regardant l'intérieur de l'intervalle,
+  // sans laisser les deux traits de séparation fournir eux-mêmes la texture.
+  const margin = Math.max(2, Math.round((right - left) * .1));
+  const fromX = Math.max(0, Math.ceil(left + margin)), toX = Math.min(image.width, Math.floor(right - margin));
+  const fromY = Math.max(0, Math.round(image.height * .08)), toY = Math.max(fromY + 1, Math.round(image.height * .92));
+  let count = 0, sum = 0, square = 0, minimum = 255, maximum = 0;
+  for (let y = fromY; y < toY; y += Math.max(1, Math.round(image.height / 180))) for (let x = fromX; x < toX; x += Math.max(1, Math.round((right - left) / 100))) {
+    const value = image.pixels[y * image.width + x];
+    sum += value; square += value * value; count++; minimum = Math.min(minimum, value); maximum = Math.max(maximum, value);
+  }
+  const deviation = count ? Math.sqrt(Math.max(0, square / count - (sum / count) ** 2)) : 0;
+  return { visible: count > 0 && deviation >= 8 && maximum - minimum >= 24, deviation };
+}
+
+// Le total fourni décrit la largeur horizontale d'une seule rangée choisie.
+// Il fixe l'échelle, jamais le nombre d'appareils ni leur famille. Les seuls
+// joints proposés sont observés dans les pixels, même pour 2 ou 2,5 modules.
+export function segmentSelection(imageData, bounds, modules) {
+  if (!imageData || !Number.isInteger(imageData.width) || !Number.isInteger(imageData.height) || imageData.width <= 0 || imageData.height <= 0 || !imageData.data || imageData.data.length !== imageData.width * imageData.height * 4) throw Error('Image invalide pour analyser la zone choisie.');
+  if (!bounds || ![bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite) || bounds.x < 0 || bounds.y < 0 || bounds.width <= 0 || bounds.height <= 0 || bounds.x + bounds.width > imageData.width || bounds.y + bounds.height > imageData.height) throw Error('La zone choisie est vide ou sort de la photo.');
+  if (!Number.isFinite(modules) || modules < .5 || modules > 100 || !Number.isInteger(modules * 2)) throw Error('Le nombre total de modules doit être compris entre 0,5 et 100, au demi-module.');
+  const image = selectionImage(imageData, bounds), pitch = image.width / modules;
+  const pixelsPerModule = bounds.width / modules;
+  const scale = { moduleMillimeters: 18, pixelsPerModule, pixelsPerMillimeter: pixelsPerModule / 18, confidence: 1, source: 'nombre-confirme' };
+  if (pitch < 4 || image.height < 12) return { rows: [], candidates: [], warnings: ['La zone contient trop peu de pixels pour distinguer les joints. Rapprochez la photo ou choisissez une zone moins large.'] };
+
+  const bands = rowBands(image).filter(band => band.bottom - band.top >= image.height * .18 && band.bottom - band.top <= image.height * .6 && frontEdges(image, band).length >= 4);
+  if (bands.length >= 2 && bands.some((band, index) => index > 0 && band.top - bands[index - 1].bottom >= image.height * .12)) return { rows: [], candidates: [], warnings: ['La zone semble contenir plusieurs rangées. Sélectionnez une seule rangée et indiquez son nombre total de modules.'] };
+
+  const observed = frontEdges(image, { top: 0, bottom: image.height });
+  const cuts = new Map([[0, { module: 0, confidence: 1 }], [modules, { module: modules, confidence: 1 }]]);
+  let uncertain = 0;
+  for (const edge of observed) {
+    const module = Math.round(edge.x / pitch * 2) / 2;
+    if (module <= 0 || module >= modules) continue;
+    const halfBoundary = Math.abs(Math.round(module * 2) % 2) === 1;
+    const alignment = Math.abs(edge.x - module * pitch) / pitch;
+    // Les demi-modules nécessitent un joint particulièrement traversant :
+    // une hampe imprimée ne doit pas couper en deux un appareil large.
+    if (alignment > .13 || edge.persistence < (halfBoundary ? .82 : .7)) { uncertain++; continue; }
+    const confidence = Math.min(.95, .7 + edge.persistence * .2 + (1 - alignment / .13) * .05);
+    if (!cuts.has(module) || cuts.get(module).confidence < confidence) cuts.set(module, { module, confidence });
+  }
+  const limits = [...cuts.values()].sort((a, b) => a.module - b.module), candidates = [], rows = [], warnings = [];
+  const faces = [];
+  for (let index = 1; index < limits.length; index++) {
+    const first = limits[index - 1], last = limits[index];
+    const texture = selectionTexture(image, first.module * pitch, last.module * pitch);
+    if (!texture.visible) continue;
+    const unknown = limits.length === 2;
+    faces.push({ first, last, unknown, confidence: unknown ? .55 : Math.min(first.confidence, last.confidence, .78 + Math.min(.14, texture.deviation / 350)) });
+  }
+  let group = [];
+  const flush = () => {
+    if (!group.length) return;
+    const first = group[0].first.module, last = group.at(-1).last.module;
+    const groupId = `selection-groupe-${rows.length}`, rowIndex = rows.length;
+    rows.push({ top: bounds.y, bottom: bounds.y + bounds.height, left: bounds.x + first * pixelsPerModule, right: bounds.x + last * pixelsPerModule, modules: last - first, cuts: [0, ...group.map(face => face.last.module - first)], confidence: Math.min(...group.map(face => face.confidence)), calibrationConfirmed: true, scale, groupId });
+    for (const face of group) candidates.push({
+      left: bounds.x + face.first.module * pixelsPerModule, right: bounds.x + face.last.module * pixelsPerModule,
+      top: bounds.y, bottom: bounds.y + bounds.height, modules: face.unknown ? null : face.last.module - face.first.module,
+      confiance: face.confidence, confidence: face.confidence, niveau: 'geometrie', scale, groupId, rowIndex,
+      reason: face.unknown ? 'Zone lisible, mais séparation des appareils inconnue : aucun joint intérieur suffisamment sûr.' : 'Découpe proposée sur des joints visibles ; échelle fournie par le nombre total de modules.'
+    });
+    group = [];
+  };
+  for (const face of faces) {
+    if (group.length && group.at(-1).last.module !== face.first.module) flush();
+    group.push(face);
+  }
+  flush();
+  if (!candidates.length) warnings.push('Aucune façade suffisamment lisible dans la zone. Corrigez les limites ou utilisez une photo plus nette ; aucune découpe uniforme n’a été créée.');
+  else if (limits.length === 2) warnings.push('Aucun joint intérieur suffisamment sûr : la zone reste inconnue et peut contenir un ou plusieurs appareils.');
+  else warnings.push('Les joints restent des propositions à vérifier. Une grande découpe peut contenir plusieurs appareils si leur joint est illisible.');
+  if (uncertain) warnings.push('Des bords imprécis ou incompatibles avec l’échelle ont été ignorés. Vérifiez le total de modules et les limites de la zone.');
+  return { candidates, rows, warnings };
+}
+
 // Le repère est la largeur mesurée par l'utilisateur sur un appareil dont
 // il connaît la largeur d'un module. La calibration n'identifie aucun appareil.
 export function calibrateRow(imageData, row, pixelsPerModule) {

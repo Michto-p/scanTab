@@ -1,0 +1,13 @@
+{
+  "synthetique": true,
+  "limites": "Tests raster de sélection et de joints ; ne constituent pas une précision métier sur photographies réelles.",
+  "scenes": [
+    { "nom": "differentiel-disjoncteurs-prise", "widths": [2, 1, 1, 2.5] },
+    { "nom": "prise-au-debut-et-demi-modules", "widths": [2.5, 1, 0.5, 0.5, 2] },
+    { "nom": "appareil-quatre-modules", "widths": [1, 4, 1] },
+    { "nom": "joints-faibles", "widths": [2, 1, 1, 2.5], "weak": true },
+    { "nom": "leviers-et-marquages-ne-creent-pas-de-coupes", "widths": [2, 1, 1, 2.5], "markings": true },
+    { "nom": "espaces-vides-exclus", "widths": [2, 1, 1, 1], "emptyIndices": [1], "expected": [2, 1, 1], "groups": 2 }
+  ],
+  "large": { "imageWidth": 1800, "imageHeight": 1000, "x": 120, "y": 170, "pitch": 190, "height": 350, "widths": [2, 1, 1, 2.5] }
+}
