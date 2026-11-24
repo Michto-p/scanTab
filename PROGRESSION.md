@@ -130,3 +130,15 @@ Publication finale du 24 novembre : parcours applicatif `5610a73`, workflow fiab
 Les **50 contrôles publics** réussissent après coupure réseau/cache HTTP depuis `/scanTab/`, sans PC configuré : OCR, workers, parcours guidé, correction de type, base validée locale, annulations, lots, originaux et ZIP, puis photo réelle. Dernières durées sur ce PC : six appareils du guidage ~3,63 s ; 42 vignettes de la photo réelle peu lisible ~44,59 s. La segmentation seule prend ~0,21 s sur cette image, mais les lectures OCR de mauvaise qualité restent coûteuses. Le temps de lecture cible et la robustesse sur Android/iOS restent donc non validés. Ne pas présenter la réussite fonctionnelle de cette recette comme une détection exhaustive ni comme une reconnaissance métier fiable.
 
 Le parcours demandé est publié. La phase 1 reste ouverte pour l'amélioration sur les photos réelles et la recette des téléphones ; aucune phase suivante engagée.
+
+## Priorité active – façades complètes et redressement avant OCR
+
+Retour après essai : le logiciel ne trouve toujours pas correctement largeur et hauteur des appareils. Le parcours et ses tests réussis ne prouvent pas la justesse des contours. Défauts identifiés : les projections peuvent prendre une bande de marquage pour la hauteur d'une façade ; le cadrage exige un grand coffret et une rangée déjà calibrable ; l'OCR reçoit encore un rectangle englobant plutôt que chaque quadrilatère redressé.
+
+- [ ] Détecter les quatre côtés des façades dans le plan de l'image et refuser les simples bandes de marquage.
+- [x] Grouper les façades en rangées orientées sans exiger un coffret ni une échelle préalable.
+- [x] Redresser chaque découpe en pleine résolution avant OCR et conserver ses coordonnées source.
+- [ ] Estimer les modules dans le plan redressé et intégrer cette géométrie au parcours existant.
+- [ ] Confronter contours, hauteurs, largeurs, PNG et OCR à une photo réelle lisible avant publication ; consigner les échecs restants.
+
+Précision utilisateur : photos avec cache/plastron. La cible est la façade visible, sans reconstituer les bornes cachées. Premier socle vérifié : 14 tests de regroupement/projection/découpage dans le plan, puis une recette Chrome comparant le PNG d'une façade inclinée pixel par pixel au redressement pleine résolution, avec original intact. Les recettes de validation, IndexedDB et ZIP restent fonctionnelles. La détection réelle n'est pas encore validée : la photo ABB de sept façades révèle encore des hauteurs tronquées et un appareil large manqué ; aucune publication de cette tentative tant que ce cas n'est pas corrigé.

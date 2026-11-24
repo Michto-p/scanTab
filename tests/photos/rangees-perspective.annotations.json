@@ -1,0 +1,30 @@
+{
+  "synthetique": true,
+  "limites": "Quads artificiels déjà détectés. Vérifie le groupement et les pixels du redressement, pas la qualité de détection sur photo réelle.",
+  "scenes": [
+    {
+      "nom": "façade-isolée-petite-dans-la-photo", "width": 1600, "height": 1200,
+      "rows": [{ "width": 75, "height": 270, "points": [{"x":740,"y":380},{"x":815,"y":390},{"x":795,"y":660},{"x":720,"y":650}], "cuts": [0,75] }]
+    },
+    {
+      "nom": "rangée-inclinée-largeurs-différentes", "width": 1000, "height": 700,
+      "rows": [{ "width": 540, "height": 200, "points": [{"x":120,"y":120},{"x":690,"y":210},{"x":660,"y":420},{"x":90,"y":330}], "cuts": [0,120,180,300,450,540] }]
+    },
+    {
+      "nom": "rangée-trapézoïdale", "width": 1000, "height": 700,
+      "rows": [{ "width": 540, "height": 260, "points": [{"x":110,"y":100},{"x":690,"y":170},{"x":660,"y":430},{"x":150,"y":370}], "cuts": [0,120,180,300,450,540] }]
+    },
+    {
+      "nom": "deux-rangées-inclinées-distinctes", "width": 1000, "height": 700,
+      "rows": [
+        { "width": 600, "height": 170, "points": [{"x":120,"y":60},{"x":720,"y":150},{"x":690,"y":320},{"x":90,"y":230}], "cuts": [0,120,240,390,450,600] },
+        { "width": 600, "height": 170, "points": [{"x":100,"y":370},{"x":700,"y":460},{"x":670,"y":630},{"x":70,"y":540}], "cuts": [0,60,180,330,450,600] }
+      ]
+    },
+    {
+      "nom": "projection-proportions-1-2-2-5", "width": 900, "height": 600,
+      "rows": [{ "width": 550, "height": 240, "points": [{"x":100,"y":80},{"x":700,"y":130},{"x":650,"y":440},{"x":140,"y":390}], "cuts": [0,100,300,550] }],
+      "relativeWidths": [1,2,2.5]
+    }
+  ]
+}

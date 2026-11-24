@@ -136,3 +136,14 @@ L'utilisateur constate une détection insuffisante et une page trop chargée. La
 - Rapprocher les marquages des références embarquées et des références déjà validées sur cet appareil. Refuser les rapprochements ambigus et ne jamais utiliser une simple proposition comme donnée confirmée.
 - Adapter le formulaire au type : un disjoncteur simple ne présente pas de champs de sensibilité ou de classe différentielle ; une prise ne présente pas de caractéristiques de protection. Un changement explicite de famille retire les caractéristiques devenues incompatibles.
 - Aucune dépendance ni architecture nouvelle n'est nécessaire ; les calculs et l'OCR restent embarqués et hors ligne.
+
+## Correction de la géométrie demandée après essai du 24 novembre 2026
+
+Le parcours simplifié ne résout pas le problème de fond constaté par l'utilisateur : les limites de largeur et de hauteur d'un appareil ne sont pas correctement comprises. Reprendre la détection des façades et leur redressement avant de découper et de lire.
+
+- Détecter les quatre bords d'une façade en deux dimensions, sans exiger une grande enceinte rectangulaire ni une rangée déjà calibrée. Une bande de texte ne doit pas devenir à elle seule la hauteur d'un appareil.
+- Conserver un quadrilatère et les coordonnées dans la photo source. Regrouper les appareils par leur alignement et leur orientation, puis redresser chaque façade avant OCR ; ne pas lire seulement son rectangle englobant incliné.
+- Estimer les largeurs modulaires dans le plan redressé, à partir des joints ou d'un repère fiable. Ne pas supposer une hauteur physique universelle à partir des seuls 18 mm.
+- Vérifier visuellement les contours complets et les découpes sur une vraie photo de résolution suffisante ; mesurer les erreurs de géométrie, pas seulement le bon déroulement des boutons.
+- Conserver les corrections humaines, les coordonnées sources et les données existantes. Ne pas annoncer une compréhension fiable de toute photo sans validation sur les photos concernées.
+- Précision de l'utilisateur : les photos prioritaires sont prises avec cache/plastron. Détecter la façade visible jusqu'à la fenêtre du plastron, sans extrapoler des bornes masquées ni exiger le corps complet d'un appareil déposé.

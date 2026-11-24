@@ -44,3 +44,22 @@ export async function cropDevice(canvas,rect) {
     return await pngBlob(result);
   }finally{result.width=0;result.height=0;}
 }
+
+/** Redresse une façade depuis ses pixels source, sans réduire sa définition. */
+export async function rectifyDevice(canvas,points,{signal}={}) {
+  checkSignal(signal);
+  if(!validateQuad(points,canvas.width,canvas.height))throw Error('Contour de façade invalide pour le redressement.');
+  // Extraire seulement l'enveloppe avant le transfert au worker évite de
+  // recopier les mégapixels de toute la photo pour chaque petit appareil.
+  const left=Math.max(0,Math.floor(Math.min(...points.map(p=>p.x)))),top=Math.max(0,Math.floor(Math.min(...points.map(p=>p.y))));
+  const right=Math.min(canvas.width,Math.ceil(Math.max(...points.map(p=>p.x)))),bottom=Math.min(canvas.height,Math.ceil(Math.max(...points.map(p=>p.y))));
+  const source=document.createElement('canvas');source.width=right-left;source.height=bottom-top;
+  let output;
+  try{
+    const context=source.getContext('2d');if(!context)throw Error('Mémoire insuffisante pour extraire cette façade.');
+    context.drawImage(canvas,left,top,source.width,source.height,0,0,source.width,source.height);
+    output=await rectify(source,points.map(p=>({x:p.x-left,y:p.y-top})),{signal});checkSignal(signal);
+    const blob=await pngBlob(output);checkSignal(signal);
+    return {blob,width:output.width,height:output.height,points:points.map(p=>({...p}))};
+  }finally{source.width=0;source.height=0;if(output){output.width=0;output.height=0;}}
+}
