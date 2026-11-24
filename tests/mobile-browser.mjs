@@ -194,7 +194,11 @@ function startAutonomousUIQA({source,annotation,appBase}) {
       const interrupted=await loadSession(document.querySelector('#saved-photos').value);
       assert(interrupted.devices.every(device=>!device.validatedAt&&!device.validatedBy),'Le cadrage annulé a validé un appareil.');
       qa.tests.push({nom:'La recherche de cadrage automatique peut être arrêtée avant l’OCR',succes:true});
-      const started=performance.now();await importFixture();qa.durationMs=Math.round(performance.now()-started);
+      const started=performance.now();await importFixture();
+      const prepared=await loadSession(document.querySelector('#saved-photos').value);
+      assert(prepared.rectified&&prepared.devices.length===0&&prepared.candidates.length===6,'Le cadrage automatique doit proposer six appareils et attendre la sélection sans OCR.');
+      document.querySelector('[data-action="select-all"]').click();await idle();
+      document.querySelector('#read-selection').click();await idle();qa.durationMs=Math.round(performance.now()-started);
       assert(document.querySelectorAll('.thumbnail').length===6,'Le tableau de huit modules doit fournir six vignettes : '+document.querySelector('#message').textContent);
       const id=document.querySelector('#saved-photos').value;
       const session=await loadSession(id);
@@ -204,7 +208,7 @@ function startAutonomousUIQA({source,annotation,appBase}) {
       assert(session.rows.length===1&&row.modules===8,'L’échelle a été forcée à un nombre de modules incorrect.');
       assert(JSON.stringify(session.devices.map(device=>device.rect.modules))===JSON.stringify(expected.devices.map(device=>device.modules)),'Les appareils de deux modules ont été divisés.');
       assert(Math.abs(row.scale.pixelsPerModule-annotation.pixelsPerModule)<2,'Le pas de 18 mm a été mal estimé.');
-      qa.tests.push({nom:'L’import démarre seul le cadrage, l’échelle et six appareils de largeurs variables',succes:true});
+      qa.tests.push({nom:'L’import prépare le cadrage puis la sélection explicite lit six appareils de largeurs variables',succes:true});
       for(const [index,device]of session.devices.entries()){
         assert(!device.validatedAt&&!device.validatedBy,'L’appareil '+(index+1)+' a été validé automatiquement.');
         assert(device.blob instanceof Blob&&device.blob.type==='image/png','Vignette PNG absente.');

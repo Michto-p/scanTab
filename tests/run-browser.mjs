@@ -8,6 +8,7 @@ import {recognizeOCR,terminateOCR} from '../training/ocr.mjs';
 import {runMobileOCRBrowserTests,runAutonomousUIBrowserTests,runCutoutBrowserTests,runCutoutUIBrowserTests} from './mobile-browser.mjs';
 import {runCollectionBrowserTests} from './collection-browser.mjs';
 import {runRealPhotoBrowserTests,runRealPhotoUIBrowserTests} from './real-photo-browser.mjs';
+import {runGuidedBrowserTests} from './guided-browser.mjs';
 
 // Contrôle Chrome via son protocole natif, sans bibliothèque de test ajoutée.
 const profile = resolve('.local/browser-' + Date.now());
@@ -27,7 +28,11 @@ const pcAddress='http://127.0.0.1:'+pcServer.address().port;
 let pcRequests=0;pcServer.on('request',req=>{if(req.url.startsWith('/api/'))pcRequests++;});
 const chrome = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const processChrome = spawn(chrome, ['--headless=new', '--disable-gpu', '--disable-background-networking', '--no-first-run', '--no-default-browser-check', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore', windowsHide: true });
-let socket;
+let socket,call,chromeExited=false;
+const chromeExit=new Promise(done=>{
+  processChrome.once('exit',()=>{chromeExited=true;done();});
+  processChrome.once('error',()=>{chromeExited=true;done();});
+});
 const sleep = ms => new Promise(done => setTimeout(done, ms));
 async function until(fn) { const deadline=Date.now()+30000; while (Date.now() < deadline) { const result = await fn(); if (result) return result; await sleep(150); } throw Error('Délai de recette navigateur dépassé'); }
 let processError;
@@ -48,7 +53,7 @@ try {
     pending.delete(message.id);
     message.error ? request.reject(Error(JSON.stringify(message.error))) : request.resolve(message.result);
   });
-  const call = (method, params = {}) => new Promise((resolve, reject) => { const key = ++id; const timer = setTimeout(() => { pending.delete(key); reject(Error('Délai CDP : ' + method)); }, 8000); pending.set(key, {resolve,reject,timer}); socket.send(JSON.stringify({id:key,method,params})); });
+  call = (method, params = {},timeoutMs=8000) => new Promise((resolve, reject) => { const key = ++id; const timer = setTimeout(() => { pending.delete(key); reject(Error('Délai CDP : ' + method)); }, timeoutMs); pending.set(key, {resolve,reject,timer}); socket.send(JSON.stringify({id:key,method,params})); });
   const evaluate = async expression => { const data = await call('Runtime.evaluate', {expression,returnByValue:true,awaitPromise:true}); if (data.exceptionDetails) throw Error(data.exceptionDetails.text + ': ' + data.exceptionDetails.exception?.description); return data.result.value; };
   await call('Page.enable'); await call('Runtime.enable'); await call('Network.enable');
   if (process.argv.includes('--shell')) {
@@ -132,7 +137,7 @@ try {
     await call('Page.reload',{ignoreCache:true});
     await until(()=>evaluate('window.__scanTableauReady === true && document.querySelectorAll("#saved-photos option").length > 1'));
     await evaluate(`document.querySelector('#saved-photos').value=${JSON.stringify(firstPhotoId)}`);await click('[data-action="open"]');await idle();
-    if(!await evaluate('document.querySelector(".badge").textContent === "Validé" && document.querySelector("[data-label=famille]").value === "disjoncteur"'))throw Error('Restauration de la première photo incomplète');
+    if(!await evaluate('document.querySelector(".badge").textContent === "Validé" && document.querySelector(".family-value strong")?.textContent === "disjoncteur"'))throw Error('Restauration de la première photo incomplète');
     await evaluate(`document.querySelector('#saved-photos').value=${JSON.stringify(correctedPhotoId)}`);await click('[data-action="open"]');await idle();
     if(!await evaluate('document.querySelector(".badge").textContent === "Validé" && document.querySelector("[data-label=calibre]").value === "16"'))throw Error('Restauration des corrections incomplète');
     console.log('PASS : photo, vignettes et validation restaurées après rechargement.');
@@ -157,11 +162,14 @@ try {
   if(process.argv.includes('--mobile-ocr')){
     console.log(JSON.stringify(await runMobileOCRBrowserTests({evaluate}),null,2));
     console.log(JSON.stringify(await runCutoutBrowserTests({evaluate}),null,2));
+    console.log(JSON.stringify(await runGuidedBrowserTests({evaluate,call}),null,2));
     console.log(JSON.stringify(await runAutonomousUIBrowserTests({evaluate}),null,2));
     console.log(JSON.stringify(await runCutoutUIBrowserTests({evaluate,call}),null,2));
     console.log(JSON.stringify(await runCollectionBrowserTests({evaluate,call}),null,2));
     console.log(JSON.stringify(await runRealPhotoBrowserTests({evaluate}),null,2));
     console.log(JSON.stringify(await runRealPhotoUIBrowserTests({evaluate}),null,2));
+  }else if(process.argv.includes('--guided')){
+    console.log(JSON.stringify(await runGuidedBrowserTests({evaluate,call}),null,2));
   }
   if(pcRequests!==requestsBeforeOffline)throw Error('Reconnexion automatique au PC après rechargement');
   if(!process.argv.includes('--shell')){
@@ -178,8 +186,12 @@ try {
   console.log('PASS : largeur mobile 390 px ; capture .local/recette-mobile.png');
 } finally {
   await terminateOCR();
+  // Browser.close arrête aussi les sous-processus du profil de recette sous
+  // Windows ; tuer seulement le lanceur peut les laisser ouverts.
+  if(socket?.readyState===WebSocket.OPEN&&call)await call('Browser.close',{},1500).catch(()=>{});
+  await Promise.race([chromeExit,sleep(1500)]);
+  if(!chromeExited){processChrome.kill();await Promise.race([chromeExit,sleep(1000)]);}
   socket?.close();
-  processChrome.kill();
   if(server.listening){server.closeAllConnections();server.close();}
   if(pcServer.listening){pcServer.closeAllConnections();pcServer.close();}
 }

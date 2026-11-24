@@ -68,13 +68,18 @@ function startCollectionQA({appBase,tableau,prise}) {
       assert(manualMessage.includes('2 photos enregistrées')&&manualMessage.includes('1 à reprendre'),'Le bilan ne signale pas les deux photos sauvegardées et le fichier invalide.');
       pass(currentTest);
 
-      currentTest='Deux photos sont analysées successivement avec des appareils distincts';
+      currentTest='Deux photos sont préparées sans OCR puis leurs sélections sont lues explicitement';
       const beforeAutomatic=await ids();setAutomatic(true);
       await submit([photo('analyse-un'),photo('analyse-deux')]);
-      const analysed=await Promise.all((await addedSince(beforeAutomatic)).map(session=>loadSession(session.id)));
-      assert(analysed.length===2,'Le lot automatique n’a pas conservé exactement deux photos.');
-      assert(new Set(analysed.map(session=>session.seance)).size===1,'Les photos automatiques ne sont pas dans la même séance.');
-      for(const session of analysed){
+      const prepared=await Promise.all((await addedSince(beforeAutomatic)).map(session=>loadSession(session.id)));
+      assert(prepared.length===2,'Le lot automatique n’a pas conservé exactement deux photos.');
+      assert(new Set(prepared.map(session=>session.seance)).size===1,'Les photos automatiques ne sont pas dans la même séance.');
+      assert(prepared.every(session=>session.rectified&&session.devices.length===0&&session.candidates.length===6),'Le lot doit cadrer les photos puis attendre le choix humain avant l’OCR.');
+      const analysed=[];
+      for(const preparation of prepared){
+        document.querySelector('#saved-photos').value=preparation.id;document.querySelector('[data-action="open"]').click();await idle();
+        document.querySelector('[data-action="select-all"]').click();await idle();document.querySelector('#read-selection').click();await idle();
+        const session=await loadSession(preparation.id);analysed.push(session);
         assert(session.devices.length===6,'La photo '+session.id+' ne contient pas les six appareils attendus.');
         assert(session.devices.some(device=>device.labels.calibre.valeur==='16 A'&&device.recognition?.moteur==='tesseract-embarque'),'L’OCR embarqué n’a pas lu le calibre de la photo '+session.id+'.');
         assert(session.devices.every(device=>device.blob instanceof Blob&&!device.validatedAt&&!device.validatedBy),'Une vignette manque ou un appareil a été validé automatiquement.');
@@ -100,15 +105,16 @@ function startCollectionQA({appBase,tableau,prise}) {
       assert(document.querySelector('#message').textContent.startsWith('Lot arrêté : 1 photo enregistrée conservée.'),'Le bilan du lot arrêté est absent.');
       pass(currentTest);
 
-      currentTest='L’annulation pendant l’OCR conserve les découpes et arrête tout le lot';
+      currentTest='L’annulation d’une lecture choisie conserve l’original et les découpes sans validation';
       const beforeOCRStop=await ids();setAutomatic(true);
+      await submit([photo('ocr-arrêt')]);
       const duringOCR=observe(document.querySelector('#analysis-status'),()=>{
         if(document.querySelector('#analysis-status').textContent.startsWith('Appareil '))document.querySelector('#analysis-cancel').click();
       });
-      try{await submit([photo('ocr-arrêt'),photo('jamais-importée')]);}
+      try{document.querySelector('[data-action="select-all"]').click();await idle();document.querySelector('#read-selection').click();await idle();}
       finally{stopObserving(duringOCR);}
       const stopped=await addedSince(beforeOCRStop);
-      assert(stopped.length===1,'L’annulation OCR a importé une photo suivante ou perdu la photo courante.');
+      assert(stopped.length===1,'L’annulation OCR a perdu la photo courante.');
       const interrupted=await loadSession(stopped[0].id);
       assert(interrupted.original instanceof Blob&&interrupted.devices.length>0,'L’original ou les découpes ont disparu à l’arrêt de l’OCR.');
       assert(interrupted.devices.every(device=>!device.validatedAt&&!device.validatedBy),'L’arrêt de l’OCR a créé une validation.');
@@ -122,7 +128,12 @@ function startCollectionQA({appBase,tableau,prise}) {
           beforeIsolatedOCR=loadSession(document.querySelector('#saved-photos').value);
         }
       });
-      try{await submit([photo('prise-isolée',prise)]);}
+      try{
+        await submit([photo('prise-isolée',prise)]);
+        const preparedIsolated=await loadSession(document.querySelector('#saved-photos').value);
+        assert(preparedIsolated.devices.length===0&&preparedIsolated.candidates.length===1,'La prise isolée doit être proposée sans lecture implicite.');
+        document.querySelector('[data-action="select-all"]').click();await idle();document.querySelector('#read-selection').click();await idle();
+      }
       finally{stopObserving(isolatedProgress);}
       const beforeReading=await beforeIsolatedOCR;
       assert(beforeReading?.devices.length===1&&beforeReading.devices[0].rect.modules===null,'La découpe isolée exige ou invente un pas de 18 mm avant l’OCR.');

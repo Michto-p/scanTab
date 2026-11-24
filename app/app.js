@@ -2,6 +2,7 @@ import {mountWorkspace,createCurrentBatch,currentAnalysisTarget,applyPCAnalysis}
 import {mountPCPanel} from './interface/pc-panel.js';
 await mountWorkspace();
 mountPCPanel({createBatch:createCurrentBatch,analysisTarget:currentAnalysisTarget,applyAnalysis:applyPCAnalysis});
+document.querySelector('.collection-options').append(document.querySelector('#pc-panel'));
 const status = document.querySelector('#offline-status');
 if ('serviceWorker' in navigator && window.isSecureContext) {
   navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(async registration => {

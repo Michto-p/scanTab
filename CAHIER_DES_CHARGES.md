@@ -125,3 +125,14 @@ L'utilisateur précise le parcours attendu : prendre une ou plusieurs photos, tr
 - Distinguer largeur estimée par géométrie, largeur issue d'une référence constructeur locale connue et largeur confirmée manuellement. Un type seul ne fixe pas les dimensions.
 - Lire les prises modulaires et signaler une contradiction entre la largeur et un marquage explicite, sans modifier silencieusement le découpage pour faire correspondre une famille.
 - Une photo floue, un appareil masqué, une perspective trop forte ou une façade sans contours ne permettent pas une détection garantie. L'application doit montrer ce qui reste inconnu et conserver les corrections ; « quelle que soit la photo » constitue un objectif de robustesse, pas une promesse de reconnaissance sans information visible.
+
+## Correction du parcours demandée le 24 novembre 2026
+
+L'utilisateur constate une détection insuffisante et une page trop chargée. La priorité reste la phase 1 : une photo, cadrage automatique, sélection directe des appareils à lire puis résultats utiles.
+
+- Épurer l'écran principal : photo, sélection tactile, nombre de modules et lecture. Ranger les réglages de séance, les corrections fines et le PC parmi les options secondaires.
+- Permettre de toucher les appareils proposés ou d'encadrer directement une rangée. Le nombre renseigné est la largeur totale de la zone, en modules de 18 mm ; chercher ensuite les joints visibles pour distinguer les appareils simples, larges et de 2,5 modules. Ne pas remplacer cette recherche par une coupe systématique tous les modules.
+- Ne lancer l'OCR que sur les découpes choisies, après cette sélection. Conserver le cadrage automatique, les originaux, la validation humaine et l'export.
+- Rapprocher les marquages des références embarquées et des références déjà validées sur cet appareil. Refuser les rapprochements ambigus et ne jamais utiliser une simple proposition comme donnée confirmée.
+- Adapter le formulaire au type : un disjoncteur simple ne présente pas de champs de sensibilité ou de classe différentielle ; une prise ne présente pas de caractéristiques de protection. Un changement explicite de famille retire les caractéristiques devenues incompatibles.
+- Aucune dépendance ni architecture nouvelle n'est nécessaire ; les calculs et l'OCR restent embarqués et hors ligne.

@@ -41,6 +41,13 @@ function startRealPhotoUI({base64,annotation,appBase}){
       transfer.items.add(new File([bytes],'armoire-domotique-commons.jpg',{type:'image/jpeg'}));input.files=transfer.files;
       const started=performance.now();input.dispatchEvent(new Event('change',{bubbles:true}));
       while(document.querySelector('#workspace').getAttribute('aria-busy')==='true')await new Promise(done=>setTimeout(done,100));
+      const prepared=await loadSession(document.querySelector('#saved-photos').value);
+      if(!prepared.rectified||prepared.devices.length||!prepared.candidates.length)throw Error('Le cadrage doit attendre la sélection sans lire les zones proposées.');
+      qa.tests.push({nom:'La photo réelle est cadrée et proposée sans découpe ni OCR implicites',succes:true});
+      document.querySelector('[data-action="select-all"]').click();
+      while(document.querySelector('#workspace').getAttribute('aria-busy')==='true')await new Promise(done=>setTimeout(done,25));
+      document.querySelector('#read-selection').click();
+      while(document.querySelector('#workspace').getAttribute('aria-busy')==='true')await new Promise(done=>setTimeout(done,100));
       qa.ms=Math.round(performance.now()-started);
       const session=await loadSession(document.querySelector('#saved-photos').value);
       if(!session?.rectified||!session.devices.length)throw Error('Le parcours ne fournit pas de vignettes : '+document.querySelector('#message').textContent);
@@ -50,7 +57,7 @@ function startRealPhotoUI({base64,annotation,appBase}){
           const r=device.rect,center=mapPoint(transform,r.x+r.width/2,r.y+r.height/2);
           return center.x>=region.left&&center.x<=region.right&&center.y>=region.top&&center.y<=region.bottom;
         });
-        qa.tests.push({nom:region.nom+' : import, cadrage, découpe et lecture sans PC',succes:found.length>=8,appareils:found.length});
+        qa.tests.push({nom:region.nom+' : cadrage puis découpe et lecture explicitement choisies sans PC',succes:found.length>=8,appareils:found.length});
       }
       const unvalidated=session.devices.every(d=>!d.validatedAt&&!d.validatedBy&&d.blob instanceof Blob&&d.recognition?.moteur==='tesseract-embarque');
       qa.tests.push({nom:'Toutes les vignettes réelles passent à la lecture locale et restent à vérifier',succes:unvalidated,appareils:session.devices.length});

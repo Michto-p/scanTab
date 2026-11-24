@@ -1,4 +1,4 @@
-import {analyzeLayout} from '../segmentation/automatic.js';
+import {analyzeLayout,segmentSelection} from '../segmentation/automatic.js';
 import {suggestRows} from '../segmentation/rows.js';
 import {detectPanelQuad} from './cadrage.js';
 import {suggestCutout} from '../segmentation/detourage.js';
@@ -10,6 +10,7 @@ self.onmessage=({data:{id,operation,image,parameters}})=>{
     let result;
     if(operation==='cadrage')result=detectPanelQuad(image);
     else if(operation==='rangées'){const layout=analyzeLayout(image);result={...layout,bands:layout.rows.length?[]:suggestRows(image)};}
+    else if(operation==='sélection')result=segmentSelection(image,parameters.bounds,parameters.modules);
     else if(operation==='détourage')result=suggestCutout(image);
     else if(operation==='redressement')result=warpPixels(image,parameters.points,progress=>self.postMessage({id,progress}));
     else throw Error('Calcul local inconnu.');

@@ -6,14 +6,15 @@ import {validateRow,deviceRects} from '../segmentation/rows.js';
 import {calibrateRow} from '../segmentation/automatic.js';
 import {recognizeLocal} from '../identification/local.js';
 import {applyRecognition,refreshReadingAfterCorrection} from '../identification/results.js';
-import {reviewRecognitionDimensions} from '../identification/formats.js';
-import {createLabels,FIELDS,FAMILIES,validateDevice,invalidateDevice} from './labels.js';
-import {saveSession,loadSession,listSessions,deleteSession} from '../base/store.js';
+import {createLabels,validateDevice,invalidateDevice,changeDeviceFamily} from './labels.js';
+import {workspaceMarkup,selectionMarkup,readingMarkup,dimensionsMarkup} from './vue.js';
+import {applyKnownReference} from '../identification/references-validees.js';
+import {saveSession,loadSession,listSessions,deleteSession,listValidatedDevices} from '../base/store.js';
 import {exportBatch} from '../exports/zip.js';
 
 const $=selector=>document.querySelector(selector);
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const levelNames={manuel:'Saisie ou validation',ocr_reference:'Référence lue',ocr_caracteristiques:'Marquage lu',regles_ocr:'Règle sur les marquages',classifieur:'Modèle de famille',decoupage:'Découpage',geometrie:'Estimation géométrique',calibration:'Repère confirmé'};
+const levelNames={manuel:'Saisie ou validation',ocr_reference:'Référence lue',ocr_caracteristiques:'Marquage lu',base_validee:'Référence validée sur cet appareil',regles_ocr:'Règle sur les marquages',classifieur:'Modèle de famille',decoupage:'Découpage',geometrie:'Estimation géométrique',calibration:'Repère confirmé'};
 const corners=['Haut gauche','Haut droit','Bas droit','Bas gauche'];
 const steps=[['capture','Photo'],['perspective','Redresser'],['rows','Découper'],['labels','Valider']];
 const uuid=()=>crypto.randomUUID();
@@ -24,7 +25,9 @@ let group=preference('seance')||newGroup(),validator=preference('validator')||''
 let saveTimer,saveChain=Promise.resolve(),revision=0,savedRevision=0,thumbnailUrls=[],photosMetadata=[];
 let analysisController=null,calibrating=null;
 let photoBatch=null;
-let automaticAfterPhoto=preference('auto-after-photo')!=='false',showOriginal=false,previewUrl='';
+let automaticAfterPhoto=preference('auto-cadrage')!=='false',showOriginal=false,previewUrl='';
+let selectionDrawing=false,editingFamily=false;
+let viewBounds=null;
 
 function message(text,error=false){const node=$('#message');node.textContent=text;node.classList.toggle('error',error);}
 function fail(error){message(error.name==='QuotaExceededError'?'Stockage plein. Exportez vos appareils validés avant de fermer cette page.':error.message||'Cette opération a échoué.',true);}
@@ -51,27 +54,44 @@ function editRows(){session.cutsDirty=true;changed();draw();}
 function widthEditable(device){return device.detection?.scaleKnown===false||!Number.isFinite(device.rect?.modules);}
 function enabled(name){return name==='capture'||(name==='perspective'&&original)||(name==='rows'&&corrected&&!session.geometryDirty)||(name==='labels'&&session?.devices.length&&!session.geometryDirty&&!session.cutsDirty);}
 function updateExportButton(){const validated=session&&(session.devices.some(d=>d.validatedAt)||photosMetadata.some(s=>s.id!==session.id&&s.seance===group&&s.validatedCount>0));$('#export').disabled=!validated||session.geometryDirty||session.cutsDirty;}
-function updateSummary(){$('#summary').textContent=session?`${session.devices.length} vignettes proposées · ${session.devices.filter(d=>d.validatedAt).length} validées sur cette photo`:'Une ou plusieurs photos → appareils repérés → lecture et vérification.';}
+function updateSummary(){$('#summary').textContent=session?.devices.length?`${session.devices.length} vignettes proposées · ${session.devices.filter(d=>d.validatedAt).length} validées sur cette photo`:session?'Sélectionnez les appareils à lire.':'Photo, sélection, lecture.';}
 
 function draw(){
   const canvas=$('#photo-canvas'),source=step==='perspective'||!corrected?original:corrected;
   $('#empty-photo').hidden=Boolean(source);canvas.hidden=!source;
   if(!source)return;
-  const scale=Math.min(1,1100/source.width,800/source.height);
-  canvas.width=Math.max(1,Math.round(source.width*scale));canvas.height=Math.max(1,Math.round(source.height*scale));
-  const ctx=canvas.getContext('2d');ctx.drawImage(source,0,0,canvas.width,canvas.height);
-  const sx=canvas.width/source.width,sy=canvas.height/source.height;
+  viewBounds={x:0,y:0,width:source.width,height:source.height};
+  if(step==='rows'&&session.selection?.bounds&&!selectionDrawing&&!$('#manual-rows')?.closest('details')?.open){
+    const b=session.selection.bounds,padding=Math.max(8,b.height*.08),x=Math.max(0,b.x-padding),y=Math.max(0,b.y-padding);
+    viewBounds={x,y,width:Math.min(source.width,b.x+b.width+padding)-x,height:Math.min(source.height,b.y+b.height+padding)-y};
+  }
+  const view=viewBounds,scale=Math.min(1,1100/view.width,800/view.height);
+  canvas.width=Math.max(1,Math.round(view.width*scale));canvas.height=Math.max(1,Math.round(view.height*scale));
+  const ctx=canvas.getContext('2d');ctx.drawImage(source,view.x,view.y,view.width,view.height,0,0,canvas.width,canvas.height);
+  const sx=canvas.width/view.width,sy=canvas.height/view.height;ctx.translate(-view.x*sx,-view.y*sy);
+  canvas.dataset.view=JSON.stringify(view);
   ctx.lineWidth=2;
   if(step==='perspective'){
     ctx.beginPath();session.points.forEach((p,i)=>i?ctx.lineTo(p.x*sx,p.y*sy):ctx.moveTo(p.x*sx,p.y*sy));ctx.closePath();ctx.fillStyle='#164f9120';ctx.fill();ctx.strokeStyle=validateQuad(session.points,source.width,source.height)?'#f4b544':'#ed4747';ctx.stroke();
     session.points.forEach((p,i)=>{const x=Math.min(canvas.width-10,Math.max(10,p.x*sx)),y=Math.min(canvas.height-10,Math.max(10,p.y*sy));ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fillStyle='#164f91';ctx.fill();ctx.strokeStyle='#fff';ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText(String(i+1),x,y+4);});
   }
-  if(step==='rows')session.rows.forEach((row,i)=>{
+  if(step==='rows'&&$('#manual-rows')?.closest('details')?.open)session.rows.forEach((row,i)=>{
     const left=(row.left??0)*sx,right=(row.right??source.width)*sx,top=row.top*sy,bottom=row.bottom*sy;
     ctx.fillStyle='#164f9120';ctx.fillRect(left,top,right-left,bottom-top);ctx.strokeStyle='#f4b544';ctx.strokeRect(left,top,right-left,bottom-top);
     row.cuts.slice(1,-1).forEach(cut=>{const x=left+(right-left)*cut/row.modules;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke();});
     ctx.fillStyle='#164f91';ctx.fillRect(left,Math.max(0,top-24),100,24);ctx.fillStyle='#fff';ctx.textAlign='left';ctx.font='14px Arial';ctx.fillText(`Rangée ${i+1}`,left+6,Math.max(18,top-7));
   });
+  if(step==='rows'){
+    const chosen=new Set(session.chosenCandidates??[]);
+    (session.candidates??[]).forEach((candidate,index)=>{
+      const x=candidate.left*sx,y=candidate.top*sy,w=(candidate.right-candidate.left)*sx,h=(candidate.bottom-candidate.top)*sy;
+      ctx.strokeStyle=chosen.has(index)?'#176caa':'#74858e';ctx.lineWidth=chosen.has(index)?3:1;
+      ctx.fillStyle=chosen.has(index)?'#176caa30':'#ffffff08';ctx.fillRect(x,y,w,h);ctx.strokeRect(x,y,w,h);
+      if(chosen.has(index)){ctx.fillStyle='#176caa';ctx.fillRect(x,y,22,20);ctx.fillStyle='#fff';ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText('✓',x+11,y+14);}
+    });
+    const bounds=drag?.selection?drag.bounds:session.selection?.bounds;
+    if(bounds){ctx.strokeStyle='#c68c18';ctx.lineWidth=3;ctx.setLineDash([7,4]);ctx.strokeRect(bounds.x*sx,bounds.y*sy,bounds.width*sx,bounds.height*sy);ctx.setLineDash([]);}
+  }
   if(step==='rows'&&calibrating?.first!=null){const row=session.rows[calibrating.row];ctx.strokeStyle='#b62e2e';ctx.beginPath();ctx.moveTo(calibrating.first*sx,row.top*sy);ctx.lineTo(calibrating.first*sx,row.bottom*sy);ctx.stroke();}
   if(step==='labels'&&session.devices[selected]){
     ctx.strokeStyle='#164f91';ctx.lineWidth=1.5;
@@ -87,22 +107,22 @@ function rowPanel(row,i){
   return `<fieldset class="row-editor"><legend>Rangée ${i+1}</legend><div class="two-col">${slider('top','Haut',height)}${slider('bottom','Bas',height)}${slider('left','Gauche',width)}${slider('right','Droite',width)}</div><label>Nombre de modules (1 module = 18 mm)<input type="number" min="0.5" max="100" step="0.5" value="${row.calibrationConfirmed===false?'':row.modules}" placeholder="À calibrer" data-row="${i}" data-modules></label><label>Séparations intérieures, en modules<input value="${escape(row.cuts.slice(1,-1).join('; '))}" data-row="${i}" data-cuts placeholder="1; 2; 4; 6.5" inputmode="text"></label><p class="hint">${row.calibrationConfirmed===false?'Échelle inconnue.':`Largeur proposée : ${row.modules} modules, soit ${row.modules*18} mm à confirmer.`}</p><button data-action="calibrate-row" data-index="${i}">Repérer un appareil de 18 mm</button><p class="hint">Une séparation tous les 0,5 module est possible. Retirez une séparation pour réunir un appareil large.</p><button data-action="remove-row" data-index="${i}" class="danger">Retirer cette rangée</button></fieldset>`;
 }
 
-function dimensionPanel(device){
-  const dimensions=reviewRecognitionDimensions(device),number=value=>String(value).replace('.',',');
-  return '<div class="dimension-note"><strong>'+(typeof dimensions.modules.valeur==='number'?number(dimensions.modules.valeur)+' module(s) · '+number(dimensions.largeurMm.valeur)+' mm':'Largeur à confirmer')+'</strong><p class="hint">'+(widthEditable(device)?'Zone à vérifier : le contour seul ne confirme pas un appareil. Une référence précise peut proposer le format ; confirmez la façade et sa largeur avant de valider.':'Largeur estimée sur la découpe. Le type est proposé par la lecture, pas par la largeur seule.')+'</p>'+dimensions.avertissements.map(w=>'<p class="dimension-warning">'+escape(w)+'</p>').join('')+'</div>';
-}
+function dimensionPanel(device){return dimensionsMarkup(device);}
 function renderPanel(){
-  const panel=$('#tools');
+  const panel=$('#tools');panel.hidden=!session;
+  if(!session){panel.replaceChildren();return;}
   if(step==='capture'){
-    panel.innerHTML=`<h2>Vos photos, puis les appareils</h2><p>Prenez une ou plusieurs photos du tableau, ou sélectionnez plusieurs images. L’analyse cherche chaque façade, estime sa largeur et lit ses marquages. Évitez les reflets et les appareils coupés.</p><div class="stack"><button class="primary" data-action="camera">Prendre une photo</button><button data-action="import">Importer des photos</button></div>${session?`<div class="quality"><strong>${session.width} × ${session.height} pixels</strong><p>${escape(session.quality?.warning||'Vérifiez les petits marquages en agrandissant la photo originale.')}</p><small>La netteté est une estimation, pas une preuve de lisibilité.</small></div><div class="stack"><button class="primary full" data-action="auto-analyze">Analyser la photo sur cet appareil</button><button class="full" data-step="perspective">Corriger le cadrage</button></div>`:'<p class="hint">La caméra du téléphone conserve la résolution du fichier photo. Un envoi au PC nécessite votre action dans le panneau de connexion.</p>'}`;
+    panel.innerHTML='<h2>Photo enregistrée</h2><p class="hint">Cadrez le tableau, puis choisissez les appareils à lire.</p><button class="primary full" data-action="auto-analyze">Cadrer et repérer</button>';
   }else if(step==='perspective'){
-    panel.innerHTML=`<h2>Redresser le tableau</h2><p>Placez les quatre coins autour de la zone à découper. Faites glisser les repères ou ajustez leurs positions ci-dessous.</p><div class="corner-grid">${session.points.map((p,i)=>`<fieldset><legend>${i+1}. ${corners[i]}</legend><div class="two-col">${['x','y'].map(axis=>`<label>${axis==='x'?'Horizontal':'Vertical'} (%)<input type="number" min="0" max="100" step="0.1" data-point="${i}" data-axis="${axis}" value="${(p[axis]/(axis==='x'?session.width:session.height)*100).toFixed(1)}"></label>`).join('')}</div></fieldset>`).join('')}</div><div class="stack"><button class="primary" data-action="auto-analyze">Analyser avec ce cadrage</button><button data-action="rectify">Appliquer le redressement seul</button><button data-action="reset-points">Reprendre toute la photo</button></div>`;
+    panel.innerHTML=`<h2>Ajuster le cadrage</h2><p class="hint">Déplacez les quatre coins sur la photo.</p><details class="fine-settings"><summary>Positions précises</summary><div class="corner-grid">${session.points.map((p,i)=>`<fieldset><legend>${i+1}. ${corners[i]}</legend><div class="two-col">${['x','y'].map(axis=>`<label>${axis==='x'?'Horizontal':'Vertical'} (%)<input type="number" min="0" max="100" step="0.1" data-point="${i}" data-axis="${axis}" value="${(p[axis]/(axis==='x'?session.width:session.height)*100).toFixed(1)}"></label>`).join('')}</div></fieldset>`).join('')}</div></details><div class="stack"><button class="primary" data-action="auto-analyze">Appliquer et sélectionner</button><button data-action="rectify">Appliquer le cadrage seul</button><button data-action="reset-points">Reprendre toute la photo</button></div>`;
   }else if(step==='rows'){
-    panel.innerHTML=`<h2>Découper les appareils</h2><p>Les séparations visibles proposent l’échelle et les appareils. Si elle reste inconnue, repérez les deux bords d’un appareil de 18 mm ou renseignez le nombre de modules.</p><div class="two-col"><button data-action="suggest">Proposer des rangées</button><button data-action="add-row">Ajouter une rangée</button></div><p class="hint">Échelle estimée sur les façades : vérifiez les appareils larges. Touchez l’intérieur d’une rangée pour ajouter ou retirer une séparation. Déplacez ses bords haut et bas pour la cadrer.</p>${session.rows.map(rowPanel).join('')}<button class="primary full" data-action="crop" ${session.rows.length?'':'disabled'}>Créer les vignettes</button><button class="primary full" data-action="crop-read" ${session.rows.length?'':'disabled'}>Découper et lire sur cet appareil</button>`;
+    panel.innerHTML=selectionMarkup(session,{drawing:selectionDrawing});
+    $('#manual-rows').innerHTML=session.rows.map(rowPanel).join('');
+    $('#manual-rows').closest('details').addEventListener('toggle',draw);
   }else{
     const device=session.devices[selected];
-    if(!device){panel.innerHTML='<p>Aucune vignette. Revenez au découpage.</p>';return;}
-    panel.innerHTML=`<div class="device-heading"><h2>Appareil ${selected+1} sur ${session.devices.length}</h2><span class="badge ${device.validatedAt?'validated':''}">${device.validatedAt?'Validé':'À vérifier'}</span></div><p class="hint">L’OCR fonctionne sur cet appareil, sans PC. Corrigez les propositions avant de valider. Laissez « inconnu » si un marquage est illisible.</p><div class="stack"><button class="primary" data-action="read-one" ${device.validatedAt?'disabled':''}>Lire cette vignette</button><button data-action="read-row">Lire toute cette rangée</button></div><img class="device-preview" src="${previewUrl}" alt="${device.cutoutBlob&&!showOriginal?'Détourage proposé':'Vignette originale'} de l’appareil ${selected+1}"><div class="stack">${device.cutoutBlob?`<button data-action="toggle-cutout">${showOriginal?'Voir le détourage':'Voir l’original'}</button>`:''}<button data-action="export-cutout">Télécharger ce PNG${device.cutoutBlob?' à fond transparent':' original'}</button></div><p class="hint">${escape(device.cutout?.reason||'Vignette originale conservée.')}${device.cutoutBlob?' L’OCR et le ZIP utilisent toujours la vignette originale.':''}</p>${dimensionPanel(device)}<div class="label-fields">${FIELDS.map(({key,label})=>`<label>${label}${key==='famille'?`<select data-label="${key}">${FAMILIES.map(f=>`<option ${device.labels[key].valeur===f?'selected':''}>${escape(f)}</option>`).join('')}</select>`:`<input data-label="${key}" value="${escape(device.labels[key].valeur)}" ${key==='modules'?(widthEditable(device)?'inputmode=decimal placeholder="Ex. : 2,5"':'readonly'):''}>`}<small>${escape(levelNames[device.labels[key].niveau]||device.labels[key].niveau)} · ${(device.labels[key].confiance*100).toFixed(0)} %</small></label>`).join('')}</div><p class="hint">Les scores automatiques sont indicatifs. La validation atteste votre lecture de chaque champ.</p>${device.validatedAt?`<p class="validation-note">Validé par ${escape(device.validatedBy)} le ${new Date(device.validatedAt).toLocaleString('fr-FR')}.</p>`:''}${device.recognition?`<details class="recognition-details"><summary>Lecture et limites</summary><p>${escape(device.recognition.limites.join(' '))}</p><pre>${escape(device.recognition.texte||'Aucun texte lisible.')}</pre></details>`:''}<label class="validator-field">Validation par<input data-validator value="${escape(validator)}" maxlength="100" autocomplete="name"></label><div class="stack"><button class="primary" data-action="validate">Valider cet appareil</button>${device.validatedAt?'<button data-action="invalidate">Remettre à vérifier</button>':''}</div><div class="two-col navigation"><button data-action="previous" ${selected?'':'disabled'}>Précédent</button><button data-action="next" ${selected<session.devices.length-1?'':'disabled'}>Suivant</button></div>`;
+    if(!device){step='rows';renderPanel();return;}
+    panel.innerHTML=readingMarkup(device,{selected,total:session.devices.length,previewUrl,showOriginal,validator,levelNames,widthEditable:widthEditable(device),editingFamily});
   }
 }
 function renderThumbs(){
@@ -117,6 +137,7 @@ function render(){
   $('#steps').innerHTML=steps.map(([name,title],i)=>`<button data-step="${name}" aria-current="${step===name?'step':'false'}" ${enabled(name)?'':'disabled'}><span>${i+1}</span>${title}</button>`).join('');
   updateExportButton();
   updateSummary();
+  $('#workspace').dataset.stage=step;$('#workspace').classList.toggle('has-photo',Boolean(session));$('#photo-actions').hidden=!session;
   renderThumbs();renderPanel();draw();
 }
 async function refreshPhotos(){
@@ -139,7 +160,7 @@ async function importPhoto(file,{signal}={}){
   // Ne jamais remplacer une photo dont l'enregistrement a échoué.
   try{if(session)await persist();}catch(error){error.photoStorageFailure=true;throw error;}
   checkAnalysis(signal);
-  releaseCanvases();original=photo.canvas;corrected=null;selected=0;showOriginal=false;calibrating=null;step='capture';
+  releaseCanvases();original=photo.canvas;corrected=null;selected=0;showOriginal=false;calibrating=null;selectionDrawing=false;editingFamily=false;step='capture';
   session={id:uuid(),seance:group,name:$('#session-name').value.trim()||'Tableau électrique',createdAt:new Date().toISOString(),original:photo.blob,rectified:null,width:photo.width,height:photo.height,points:defaults(photo.width,photo.height),pointsSource:'original',rows:[],devices:[],quality:clarity(original),geometryDirty:false,cutsDirty:false};
   session.sourceName=(file.name||'Photo').slice(0,200);
   revision=1;savedRevision=0;message(session.quality.warning||'Photo chargée. Vérifiez les marquages, puis cadrez le tableau.');
@@ -195,7 +216,7 @@ async function applyPerspective({replaceConfirmed=false,signal}={}){
   const full=defaults(original.width,original.height).every((p,i)=>Math.abs(p.x-session.points[i].x)<.01&&Math.abs(p.y-session.points[i].y)<.01);
   const result=full?original:await rectify(original,session.points,{signal,onProgress:progress=>{$('#analysis-meter').value=progress;}}),blob=await pngBlob(result);
   checkAnalysis(signal);
-  corrected=result;session.rectified=blob;session.appliedPoints=structuredClone(session.points);session.rows=[];session.candidates=[];session.devices=[];session.geometryDirty=false;session.cutsDirty=false;selected=0;showOriginal=false;step='rows';changed();await persist();message('Image redressée. Ajoutez ou proposez les rangées, puis vérifiez leur échelle.');
+  corrected=result;session.rectified=blob;session.appliedPoints=structuredClone(session.points);session.rows=[];session.candidates=[];session.chosenCandidates=[];session.selection=null;session.devices=[];session.geometryDirty=false;session.cutsDirty=false;selected=0;showOriginal=false;step='rows';changed();await persist();message('Photo cadrée. Sélectionnez les appareils à lire.');
 }
 function addRow(){const height=corrected.height;session.rows.push({top:Math.round(height*.2),bottom:Math.round(height*.8),left:0,right:corrected.width,modules:1,cuts:[0,1],calibrationConfirmed:false});editRows();message('Rangée ajoutée : ajustez ses limites puis renseignez son échelle ou repérez un appareil de 18 mm.');}
 function layoutSample(source=corrected,maximum=1100){
@@ -215,32 +236,75 @@ async function detectLayout({signal}={}){
   // inconnu si aucune répétition ou référence précise ne le démontre.
   const candidates=(result.candidates??[]).filter(c=>c.confiance>=.75).map(c=>({...c,left:c.left*sx,right:c.right*sx,top:c.top*sy,bottom:c.bottom*sy,scale:scale(c.scale)}));
   if(!session.rows.length)session.rows=result.bands.map(r=>({...r,top:r.top*sy,bottom:r.bottom*sy,left:0,right:corrected.width,modules:1,cuts:[0,1],calibrationConfirmed:false}));
-  session.layoutWarnings=result.warnings;session.candidates=candidates;editRows();
+  session.layoutWarnings=result.warnings;session.candidates=candidates;session.chosenCandidates=[];session.selection=null;changed();draw();
   const unknown=candidates.filter(c=>!Number.isFinite(c.modules)).length;
   message(candidates.length?String(candidates.length)+' zones proposées.'+(unknown?' '+unknown+' restent sans échelle : vérifiez qu’il s’agit bien d’appareils ; leur lecture peut continuer.':' Vérifiez les appareils larges et leurs séparations.'):'Aucun appareil suffisamment délimité. Corrigez le cadrage ou tracez les rangées pour poursuivre.');
   return {rows:session.rows,candidates};
 }
-async function cropRegions(regions,{signal}={}){
-  const devices=[],started=performance.now();
+function chooseArea(bounds,{modules='',rowIndex=null}={}){
+  session.selection={bounds,modules,rowIndex};selectionDrawing=false;
+  session.chosenCandidates=(session.candidates??[]).flatMap((c,index)=>{const x=(c.left+c.right)/2,y=(c.top+c.bottom)/2;return x>=bounds.x&&x<=bounds.x+bounds.width&&y>=bounds.y&&y<=bounds.y+bounds.height?[index]:[];});
+  changed();render();message('Zone choisie. Indiquez sa largeur totale en modules, puis lancez la lecture.');
+}
+async function previewSelection({signal}={}){
+  const area=session.selection;if(!area)return;
+  const bounds=area.bounds,total=area.modules===''?null:Number(String(area.modules).replace(',','.'));
+  // Extraire la zone AVANT de réduire l'aperçu : un appareil petit dans une
+  // grande photo doit garder ses joints pour le calcul, et tous ses pixels
+  // d'origine pour la découpe qui suit.
+  const sample=document.createElement('canvas'),ratio=Math.min(1,1400/bounds.width,1000/bounds.height);
+  sample.width=Math.max(1,Math.round(bounds.width*ratio));sample.height=Math.max(1,Math.round(bounds.height*ratio));
+  sample.getContext('2d').drawImage(corrected,bounds.x,bounds.y,bounds.width,bounds.height,0,0,sample.width,sample.height);
+  const image=sample.getContext('2d').getImageData(0,0,sample.width,sample.height),rx=bounds.width/image.width,ry=bounds.height/image.height;
+  sample.width=0;sample.height=0;
+  analysisStage('Recherche des séparations dans la zone…');checkAnalysis(signal);
+  const result=total===null?await calculateImage('rangées',image,{signal}):await calculateImage('sélection',image,{signal,bounds:{x:0,y:0,width:image.width,height:image.height},modules:total});
+  const scale=value=>value?{...value,pixelsPerModule:value.pixelsPerModule*rx,pixelsPerMillimeter:value.pixelsPerMillimeter*rx}:null;
+  result.candidates=result.candidates.map(c=>({...c,left:bounds.x+c.left*rx,right:bounds.x+c.right*rx,top:bounds.y+c.top*ry,bottom:bounds.y+c.bottom*ry,scale:scale(c.scale)}));
+  result.rows=result.rows.map(r=>({...r,left:bounds.x+r.left*rx,right:bounds.x+r.right*rx,top:bounds.y+r.top*ry,bottom:bounds.y+r.bottom*ry,scale:scale(r.scale),calibrationConfirmed:true}));
+  // Sans étalon, le rectangle tracé reste lisible même si sa segmentation est
+  // indécidable. Sa largeur reste inconnue jusqu'à une preuve ou confirmation.
+  if(total===null&&!result.candidates.length)result.candidates=[{left:bounds.x,right:bounds.x+bounds.width,top:bounds.y,bottom:bounds.y+bounds.height,modules:null,confiance:.5,niveau:'geometrie',groupId:'zone-choisie',reason:'Zone choisie : séparations et largeur à confirmer.'}];
+  checkAnalysis(signal);session.candidates=result.candidates;session.chosenCandidates=result.candidates.map((_,i)=>i);session.layoutWarnings=result.warnings;
+  if(result.rows.length)session.rows=result.rows;
+  area.previewedModules=area.modules;changed();draw();
+  message(result.candidates.length?`${result.candidates.length} découpes proposées. ${result.warnings.join(' ')}`:result.warnings.join(' ')||'Aucune séparation fiable. Ajustez la zone.');
+}
+async function readSelection(){
+  return withAnalysis(async signal=>{
+    if(session.selection)await previewSelection({signal});
+    const candidates=(session.chosenCandidates??[]).map(i=>session.candidates[i]).filter(Boolean);
+    if(!candidates.length)throw Error(session.layoutWarnings?.join(' ')||'Sélectionnez un appareil ou encadrez une rangée.');
+    // Revenir à la sélection permet d'ajouter une autre rangée, sans perdre les
+    // lectures déjà corrigées. Une même découpe n'est pas créée deux fois.
+    const sameRect=(c,r)=>Math.abs(c.left-r.x)<2&&Math.abs(c.top-r.y)<2&&Math.abs(c.right-r.x-r.width)<2&&Math.abs(c.bottom-r.y-r.height)<2;
+    const fresh=candidates.filter(c=>!session.devices.some(d=>sameRect(c,d.rect))),start=session.devices.length;
+    if(fresh.length)await cropDetected(fresh,{signal,append:true});
+    const indices=fresh.length?session.devices.map((_,i)=>i).slice(start):session.devices.flatMap((d,i)=>candidates.some(c=>sameRect(c,d.rect))?[i]:[]);
+    step='labels';await readDevicesCore(indices,signal);editingFamily=false;
+  });
+}
+async function cropRegions(regions,{signal,append=false}={}){
+  const existing=append?session.devices:[],devices=[],started=performance.now();
   for(const region of regions){
     checkAnalysis(signal);analysisStage('Découpage et détourage : appareil '+(devices.length+1)+'/'+regions.length+'…');
     const {rect,rowIndex,scale,detection}=region,labels=createLabels();
-    labels.modules=Number.isFinite(rect.modules)?{valeur:rect.modules,confiance:scale?.confidence??0,niveau:scale?.source==='separations-visibles'?'geometrie':scale?.source==='nombre-confirme'||scale?.source==='repere-18-mm'?'calibration':'decoupage'}:{valeur:'inconnu',confiance:0,niveau:'geometrie'};
+    labels.modules=Number.isFinite(rect.modules)?{valeur:rect.modules,confiance:Math.min(scale?.confidence??0,detection?.confiance??1),niveau:Number.isFinite(detection?.confiance)||scale?.source==='separations-visibles'?'geometrie':scale?.source==='nombre-confirme'||scale?.source==='repere-18-mm'?'calibration':'decoupage'}:{valeur:'inconnu',confiance:0,niveau:'geometrie'};
     const blob=await cropDevice(corrected,rect);checkAnalysis(signal);
     const cutout=await cutoutDevice(blob,{signal});checkAnalysis(signal);
     devices.push({id:uuid(),rowIndex,rect,blob,cutoutBlob:cutout.blob,cutout:cutout.details,detection,labels,validatedAt:null,validatedBy:null});
   }
-  checkAnalysis(signal);session.devices=devices;session.cutsDirty=false;session.cropDurationMs=Math.round(performance.now()-started);selected=0;showOriginal=false;step='labels';changed();await persist();
+  checkAnalysis(signal);session.devices=[...existing,...devices];session.cutsDirty=false;session.cropDurationMs=Math.round(performance.now()-started);selected=existing.length;showOriginal=false;editingFamily=false;step='labels';changed();await persist();
   message(String(devices.length)+' vignettes créées. La lecture et la validation restent indépendantes de l’estimation du pas de 18 mm.');return true;
 }
-async function cropDetected(candidates,{signal}={}){
-  const groups=new Map();
+async function cropDetected(candidates,{signal,append=false}={}){
+  const groups=new Map(),offset=append?Math.max(-1,...session.devices.map(d=>d.rowIndex).filter(i=>Number.isInteger(i)&&i>=0))+1:0;
   const regions=candidates.filter(c=>[c.left,c.right,c.top,c.bottom].every(Number.isFinite)&&c.left>=0&&c.right<=corrected.width&&c.top>=0&&c.bottom<=corrected.height&&c.right>c.left&&c.bottom>c.top).map(c=>{
-    if(!groups.has(c.groupId))groups.set(c.groupId,-1-groups.size);
-    return {rowIndex:c.rowIndex??groups.get(c.groupId),rect:{x:c.left,y:c.top,width:c.right-c.left,height:c.bottom-c.top,modules:c.modules},scale:c.scale,detection:{confiance:c.confiance,niveau:c.niveau,reason:c.reason,scaleKnown:Number.isFinite(c.modules)}};
+    if(!groups.has(c.groupId))groups.set(c.groupId,-1-groups.size-(append?session.devices.length:0));
+    return {rowIndex:Number.isInteger(c.rowIndex)&&c.rowIndex>=0?c.rowIndex+offset:groups.get(c.groupId),rect:{x:c.left,y:c.top,width:c.right-c.left,height:c.bottom-c.top,modules:c.modules},scale:c.scale,detection:{confiance:c.confiance,niveau:c.niveau,reason:c.reason,scaleKnown:Number.isFinite(c.modules)}};
   });
   if(!regions.length)throw Error('Aucune façade suffisamment délimitée pour la lecture.');
-  return cropRegions(regions,{signal});
+  return cropRegions(regions,{signal,append});
 }
 async function crop({replaceConfirmed=false,signal}={}){
   if(!session.rows.length||!session.rows.every(r=>validateRow(r,corrected.width,corrected.height)))throw Error('Vérifiez les limites, le nombre de modules et les séparations de chaque rangée.');
@@ -267,13 +331,17 @@ async function withAnalysis(action){
 }
 async function readDevicesCore(indices,signal){
   const meter=$('#analysis-meter'),text=$('#analysis-status');let finished=0,proposals=0;const started=performance.now();
+  const validatedDevices=await listValidatedDevices();checkAnalysis(signal);
   for(const index of indices){
     checkAnalysis(signal);
     const device=session.devices[index];if(device.validatedAt)continue;
-    selected=index;showOriginal=false;render();
+    selected=index;showOriginal=false;
+    // L'interface est immobilisée pendant le lot. Recréer et décoder toutes
+    // les miniatures à chaque OCR multipliait les allocations sur téléphone.
+    if(finished===0)render();
     const result=await recognizeLocal(device.blob,{signal,onProgress:event=>{text.textContent='Appareil '+(finished+1)+'/'+indices.length+' · '+event.status+'…';meter.value=(finished+event.progress)/indices.length;}});
     checkAnalysis(signal);
-    proposals+=applyRecognition(device,result);changed();finished++;meter.value=finished/indices.length;
+    proposals+=applyRecognition(device,applyKnownReference(result,validatedDevices));changed();finished++;meter.value=finished/indices.length;
     await new Promise(resolve=>setTimeout(resolve,0));
   }
   checkAnalysis(signal);session.analysisDurationMs=Math.round(performance.now()-started);
@@ -295,9 +363,8 @@ async function autoAnalyzePhoto(){
       }
       await applyPerspective({replaceConfirmed:true,signal});
     }
-    checkAnalysis(signal);step='rows';const layout=await detectLayout({signal});
-    if(!layout.candidates.length)return;
-    await cropDetected(layout.candidates,{signal});await readDevicesCore(session.devices.map((_,i)=>i),signal);
+    checkAnalysis(signal);step='rows';await detectLayout({signal});
+    message(session.candidates.length?'Photo cadrée. Touchez les appareils à lire, ou encadrez une rangée.':'Photo prête. Encadrez une rangée et renseignez sa largeur en modules.');
   });
 }
 export async function createCurrentBatch(){
@@ -342,13 +409,20 @@ function exportDevicePNG(){
   message(device.cutoutBlob?'PNG détouré préparé. Vérifiez le contour sur l’aperçu et comparez avec l’original.':'PNG original préparé : le fond n’a pas pu être retiré avec assez de confiance.');
 }
 
-function pointerCoordinates(event){const canvas=$('#photo-canvas'),r=canvas.getBoundingClientRect(),source=step==='perspective'?original:corrected;return {x:Math.max(0,Math.min(source.width,(event.clientX-r.left)/r.width*source.width)),y:Math.max(0,Math.min(source.height,(event.clientY-r.top)/r.height*source.height)),threshold:24/r.width*source.width};}
+function pointerCoordinates(event){const canvas=$('#photo-canvas'),r=canvas.getBoundingClientRect(),source=step==='perspective'?original:corrected,view=viewBounds??{x:0,y:0,width:source.width,height:source.height};return {x:Math.max(0,Math.min(source.width,view.x+(event.clientX-r.left)/r.width*view.width)),y:Math.max(0,Math.min(source.height,view.y+(event.clientY-r.top)/r.height*view.height)),threshold:24/r.width*view.width};}
 function pointerDown(event){
   if(busy||!['perspective','rows','labels'].includes(step))return;
   const p=pointerCoordinates(event);
   if(step==='labels'){
     const hit=session.devices.map((device,index)=>({rect:device.rect,index})).filter(({rect:r})=>p.x>=r.x&&p.x<=r.x+r.width&&p.y>=r.y&&p.y<=r.y+r.height).sort((a,b)=>a.rect.width*a.rect.height-b.rect.width*b.rect.height)[0];
-    if(hit){selected=hit.index;showOriginal=false;render();}return;
+    if(hit){selected=hit.index;showOriginal=false;editingFamily=false;render();}return;
+  }
+  if(step==='rows'&&!calibrating&&!$('#manual-rows')?.closest('details')?.open){
+    if(selectionDrawing){drag={selection:true,first:p,bounds:{x:p.x,y:p.y,width:0,height:0}};event.currentTarget.setPointerCapture(event.pointerId);event.preventDefault();draw();return;}
+    const hit=(session.candidates??[]).map((c,index)=>({c,index})).filter(({c})=>p.x>=c.left&&p.x<=c.right&&p.y>=c.top&&p.y<=c.bottom).sort((a,b)=>(a.c.right-a.c.left)*(a.c.bottom-a.c.top)-(b.c.right-b.c.left)*(b.c.bottom-b.c.top))[0];
+    if(hit){const chosen=new Set(session.chosenCandidates??[]);chosen.has(hit.index)?chosen.delete(hit.index):chosen.add(hit.index);session.chosenCandidates=[...chosen];session.selection=null;changed();render();}
+    else message('Encadrez la rangée si ses appareils ne sont pas proposés.');
+    return;
   }
   if(step==='rows'&&calibrating){
     const row=session.rows[calibrating.row];
@@ -372,27 +446,45 @@ function pointerDown(event){
   }
   event.currentTarget.setPointerCapture(event.pointerId);event.preventDefault();
 }
-function pointerMove(event){if(!drag||busy)return;const p=pointerCoordinates(event);if(drag.point!==undefined){session.points[drag.point]={x:p.x,y:p.y};editGeometry();}else{const row=session.rows[drag.row];row[drag.bound]=drag.bound==='top'?Math.min(row.bottom-1,Math.round(p.y)):Math.max(row.top+1,Math.round(p.y));editRows();}draw();}
+function pointerMove(event){if(!drag||busy)return;const p=pointerCoordinates(event);if(drag.selection){drag.bounds={x:Math.min(p.x,drag.first.x),y:Math.min(p.y,drag.first.y),width:Math.abs(p.x-drag.first.x),height:Math.abs(p.y-drag.first.y)};}else if(drag.point!==undefined){session.points[drag.point]={x:p.x,y:p.y};editGeometry();}else{const row=session.rows[drag.row];row[drag.bound]=drag.bound==='top'?Math.min(row.bottom-1,Math.round(p.y)):Math.max(row.top+1,Math.round(p.y));editRows();}draw();}
+function pointerEnd(event){
+  if(!drag)return;
+  const previous=drag;drag=null;
+  if(previous.selection){
+    if(event.type==='pointercancel'){draw();return;}
+    const bounds=previous.bounds;
+    if(bounds.width<3||bounds.height<3){message('Faites glisser le doigt du coin haut gauche au coin bas droit de la rangée.');draw();return;}
+    chooseArea(bounds);return;
+  }
+  renderPanel();draw();
+}
 
 export async function mountWorkspace(){
-  $('#workspace').innerHTML=`<div class="intro"><div><h1>Analyser un tableau</h1><p id="summary"></p></div><button class="primary" id="export" data-action="export" disabled>Exporter la séance en ZIP</button></div><details class="session-options" id="session-details"><summary>Informations de séance et de validation</summary><section class="session-bar" aria-label="Séance de collecte"><label>Nom du tableau<input id="session-name" value="Tableau électrique" maxlength="100"></label><label>Séance photo<input id="group-id" value="${escape(group)}" maxlength="100" aria-describedby="group-hint"></label><label>Votre nom ou vos initiales<input id="validator" value="${escape(validator)}" maxlength="100" autocomplete="name"></label><button data-action="new-group">Nouvelle séance</button><p class="hint" id="group-hint">Gardez le même identifiant de séance pour les photos prises ensemble. Le ZIP regroupe les photos de cette séance.</p></section></details><div class="photo-library"><label class="sr-only" for="saved-photos">Photos enregistrées</label><select id="saved-photos"><option value="">Choisir une photo enregistrée</option></select><button data-action="open">Ouvrir</button><button data-action="delete" class="danger">Supprimer</button><span id="save-status" role="status">Aucune photo ouverte</span></div><label class="automatic-option"><input type="checkbox" id="auto-after-photo" ${automaticAfterPhoto?'checked':''}>Analyser automatiquement après la photo <small>Sur cet appareil, sans PC.</small></label><nav class="steps" id="steps" aria-label="Étapes de collecte"></nav><p id="message" role="status" aria-live="polite">Commencez par une photo du tableau ou importez une image.</p><div class="workbench"><div class="photo-column"><div class="stage"><div id="empty-photo"><img src="./icons/tableau.svg" width="96" height="96" alt=""><h2>Photographier, repérer, lire</h2><p>L’appareil est repéré avant sa lecture. Un module représente 18 mm ; sa largeur peut rester à confirmer.</p><div class="stack"><button class="primary" data-action="camera">Prendre une photo</button><button data-action="import">Importer des photos</button></div></div><canvas id="photo-canvas" hidden aria-label="Photo de travail. Les coins et limites sont également réglables avec les champs du panneau."></canvas></div><p id="photo-info" class="hint"></p><div id="thumbnails" class="thumbnails" aria-label="Appareils découpés" hidden></div></div><aside id="tools" aria-label="Outils de collecte"></aside></div><input type="file" id="import-file" accept="image/*" hidden><input type="file" id="camera-file" accept="image/*" capture="environment" hidden>`;
+  $('#workspace').innerHTML=workspaceMarkup({group,validator,automaticAfterPhoto});
   $('#import-file').multiple=true;
   const batchStatus=document.createElement('small');batchStatus.id='batch-status';batchStatus.hidden=true;batchStatus.setAttribute('aria-live','polite');$('#analysis-progress').prepend(batchStatus);
   preference('seance',group);
   $('#workspace').addEventListener('click',event=>{
     const button=event.target.closest('button');if(!button||button.disabled||busy)return;
-    if(button.dataset.step){calibrating=null;step=button.dataset.step;render();return;}
-    if(button.dataset.device!==undefined){selected=Number(button.dataset.device);showOriginal=false;render();return;}
+    if(button.dataset.step){calibrating=null;selectionDrawing=false;editingFamily=false;step=button.dataset.step;render();return;}
+    if(button.dataset.device!==undefined){selected=Number(button.dataset.device);showOriginal=false;editingFamily=false;render();return;}
+    if(button.dataset.selectRow!==undefined){const index=Number(button.dataset.selectRow),row=session.rows[index];chooseArea({x:row.left??0,y:row.top,width:(row.right??corrected.width)-(row.left??0),height:row.bottom-row.top},{modules:row.calibrationConfirmed===false?'':row.modules,rowIndex:index});return;}
     const action=button.dataset.action;
     if(action==='import'||action==='camera'){$(action==='camera'?'#camera-file':'#import-file').click();return;}
     const actions={rectify:()=>withAnalysis(signal=>applyPerspective({signal})),crop:()=>withAnalysis(signal=>crop({signal})),validate,suggest:()=>withAnalysis(signal=>proposeRows({signal})),'add-row':addRow,open:openPhoto,export:exportGroup,
       'auto-analyze':autoAnalyzePhoto,'read-one':()=>readDevices([selected]),'read-row':()=>readDevices(session.devices.flatMap((d,i)=>d.rowIndex===session.devices[selected].rowIndex&&!d.validatedAt?[i]:[])),
+      'read-selection':readSelection,'preview-selection':()=>withAnalysis(signal=>previewSelection({signal})),
+      'draw-selection':()=>{selectionDrawing=!selectionDrawing;message(selectionDrawing?'Faites glisser le doigt autour d’une seule rangée, d’un coin à l’autre.':'Tracé annulé.');},
+      'select-all':()=>{session.selection=null;const all=(session.candidates??[]).map((_,i)=>i);session.chosenCandidates=session.chosenCandidates?.length===all.length?[]:all;changed();},
+      'back-selection':()=>withAnalysis(async signal=>{step='rows';selectionDrawing=false;editingFamily=false;await detectLayout({signal});message('Choisissez les appareils à ajouter. Les lectures précédentes sont conservées.');}),
+      'edit-family':()=>{editingFamily=true;},
+      'confirm-family':()=>{session.devices[selected]=changeDeviceFamily(session.devices[selected],session.devices[selected].labels.famille.valeur,{humanChoice:true});refreshReadingAfterCorrection(session.devices[selected]);editingFamily=false;changed();},
       'crop-read':()=>withAnalysis(async signal=>{if(await crop({signal}))await readDevicesCore(session.devices.map((_,i)=>i),signal);}),
       'toggle-cutout':()=>{showOriginal=!showOriginal;},'export-cutout':exportDevicePNG,
       'calibrate-row':()=>{calibrating={row:Number(button.dataset.index),first:null};message('Touchez les deux bords verticaux d’un appareil connu d’un module (18 mm), dans cette rangée.');},
       'reset-points':()=>{session.points=defaults(session.width,session.height);editGeometry();},
       'remove-row':()=>{session.rows.splice(Number(button.dataset.index),1);editRows();},
-      previous:()=>{selected--;showOriginal=false;},next:()=>{selected++;showOriginal=false;},
+      previous:()=>{selected--;showOriginal=false;editingFamily=false;},next:()=>{selected++;showOriginal=false;editingFamily=false;},
       invalidate:async()=>{session.devices[selected]=invalidateDevice(session.devices[selected]);changed();await persist();await refreshPhotos();message('Appareil remis à vérifier.');},
       'new-group':async()=>{if(session)await persist();session=null;original=null;corrected=null;step='capture';group=newGroup();preference('seance',group);$('#group-id').value=group;$('#save-status').textContent='Nouvelle séance';message('Nouvelle séance prête. Prenez ou importez les photos de cette prise de vue.');},
       delete:async()=>{const id=$('#saved-photos').value;if(!id)return;if(!confirm('Supprimer cette photo et ses validations de cet appareil ?'))return;if(session?.id===id){clearTimeout(saveTimer);await saveChain.catch(()=>{});session=null;original=null;corrected=null;step='capture';revision=0;savedRevision=0;}await deleteSession(id);await refreshPhotos();message('Photo supprimée de cet appareil.');}
@@ -401,16 +493,17 @@ export async function mountWorkspace(){
   });
   $('#import-file').addEventListener('change',event=>{const files=Array.from(event.target.files||[]);event.target.value='';void run(()=>importPhotos(files));});
   $('#camera-file').addEventListener('change',event=>{const file=event.target.files[0];event.target.value='';void run(()=>importPhoto(file));});
-  $('#auto-after-photo').addEventListener('change',event=>{automaticAfterPhoto=event.target.checked;preference('auto-after-photo',String(automaticAfterPhoto));});
+  $('#auto-after-photo').addEventListener('change',event=>{automaticAfterPhoto=event.target.checked;preference('auto-cadrage',String(automaticAfterPhoto));});
   $('#session-name').addEventListener('input',event=>{if(session){session.name=event.target.value;changed();}});
   $('#validator').addEventListener('input',event=>{validator=event.target.value;preference('validator',validator);});
   $('#group-id').addEventListener('change',event=>{const value=event.target.value.trim();if(!value){event.target.value=group;return;}group=value;preference('seance',group);if(session){session.seance=group;session.devices=session.devices.map(invalidateDevice);changed();render();message('Séance modifiée : confirmez à nouveau les étiquettes de cette photo.');}});
   $('#tools').addEventListener('input',event=>{
     const input=event.target;
+    if(input.id==='selection-modules'){session.selection.modules=input.value;session.selection.previewedModules=null;changed();return;}
     if(input.dataset.validator!==undefined){validator=input.value;$('#validator').value=validator;preference('validator',validator);return;}
     if(input.dataset.point!==undefined){const value=Number(input.value);if(!input.value||value<0||value>100)return;session.points[Number(input.dataset.point)][input.dataset.axis]=value/100*(input.dataset.axis==='x'?session.width:session.height);editGeometry();return;}
-    if(input.dataset.label){const key=input.dataset.label;if(key==='modules'&&!widthEditable(session.devices[selected]))return;const provenance=input.closest('label')?.querySelector('small');if(provenance)provenance.textContent='Saisie en cours · à confirmer';const d=session.devices[selected];d.labels[key]={valeur:input.value.trim()||'inconnu',confiance:0,niveau:'manuel'};refreshReadingAfterCorrection(d);
-      const widthInput=$('[data-label="modules"]');if(key!=='modules'&&widthInput&&widthInput.value!==String(d.labels.modules.valeur)){widthInput.value=d.labels.modules.valeur;widthInput.closest('label').querySelector('small').textContent=(levelNames[d.labels.modules.niveau]||d.labels.modules.niveau)+' · '+Math.round(d.labels.modules.confiance*100)+' %';}
+    if(input.dataset.label){const key=input.dataset.label;if(key==='modules'&&!widthEditable(session.devices[selected]))return;if(key==='famille'){session.devices[selected]=changeDeviceFamily(session.devices[selected],input.value,{humanChoice:true});refreshReadingAfterCorrection(session.devices[selected]);editingFamily=false;changed();render();return;}const provenance=input.closest('label')?.querySelector('small');if(provenance)provenance.textContent='Saisie en cours · à confirmer';const d=session.devices[selected];d.labels[key]={valeur:input.value.trim()||'inconnu',confiance:0,niveau:'manuel'};refreshReadingAfterCorrection(d);
+      const widthInput=$('[data-label="modules"]');if(key!=='modules'&&widthInput&&widthInput.value!==String(d.labels.modules.valeur)){widthInput.value=d.labels.modules.valeur;}
       if($('.dimension-note'))$('.dimension-note').outerHTML=dimensionPanel(d);session.devices[selected]=invalidateDevice(d);changed();updateExportButton();updateSummary();document.querySelector(`[data-device="${selected}"]`)?.classList.remove('validated');const badge=$('#tools .badge');if(badge){badge.textContent='À vérifier';badge.classList.remove('validated');}$('#tools .validation-note')?.remove();return;}
     if(input.dataset.bound){const row=session.rows[Number(input.dataset.row)],bound=input.dataset.bound,max=['left','right'].includes(bound)?corrected.width:corrected.height;row[bound]=Math.round(Number(input.value)/100*max);editRows();return;}
   });
@@ -419,7 +512,7 @@ export async function mountWorkspace(){
     if(input.dataset.modules!==undefined){const row=session.rows[Number(input.dataset.row)],modules=Number(input.value);if(!Number.isFinite(modules)||modules<.5||modules>100||snapHalfModule(modules)!==modules){input.value=row.modules;message('Choisissez un nombre entre 0,5 et 100 modules, par demi-module.',true);return;}row.modules=modules;row.calibrationConfirmed=true;row.scale={source:'nombre-confirme',confidence:1,moduleMillimeters:18,pixelsPerModule:(row.right-row.left)/modules};row.cuts=[0,...Array.from({length:Math.ceil(modules)-1},(_,i)=>i+1).filter(c=>c<modules),modules];editRows();renderPanel();}
     if(input.dataset.cuts!==undefined){const row=session.rows[Number(input.dataset.row)],cuts=input.value.trim()?input.value.split(';').map(s=>Number(s.trim().replace(',','.'))):[];const next={...row,cuts:[0,...cuts,row.modules]};if(!validateRow(next,corrected.width,corrected.height)){input.value=row.cuts.slice(1,-1).join('; ');message('Séparations invalides : utilisez des demi-modules croissants, séparés par des points-virgules.',true);return;}row.cuts=next.cuts;editRows();}
   });
-  const canvas=$('#photo-canvas');canvas.addEventListener('pointerdown',pointerDown);canvas.addEventListener('pointermove',pointerMove);for(const name of ['pointerup','pointercancel'])canvas.addEventListener(name,()=>{if(drag){drag=null;renderPanel();draw();}});
+  const canvas=$('#photo-canvas');canvas.addEventListener('pointerdown',pointerDown);canvas.addEventListener('pointermove',pointerMove);for(const name of ['pointerup','pointercancel'])canvas.addEventListener(name,pointerEnd);
   window.addEventListener('pagehide',()=>{if(session&&revision!==savedRevision)void persist().catch(()=>{});});
   window.addEventListener('beforeunload',event=>{if(session&&revision!==savedRevision){event.preventDefault();event.returnValue='';}});
   const stopAnalysis=()=>{photoBatch?.controller.abort();analysisController?.abort();};

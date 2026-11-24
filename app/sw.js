@@ -1,8 +1,9 @@
-const CACHE = 'scan-tableau-v10';
+const CACHE = 'scan-tableau-v11';
 const ASSETS = [
   './', './index.html', './app.js', './manifest.webmanifest', './interface/style.css', './icons/tableau.svg', './icons/tableau-192.png', './icons/tableau-512.png', './interface/workspace.js', './interface/pc-panel.js', './connexion/client.js', './interface/labels.js', './capture/photo.js',
   './pretraitement/geometry.js', './pretraitement/image.js', './pretraitement/calcul.js', './pretraitement/calcul-worker.js', './pretraitement/pixels.js', './pretraitement/cadrage.js', './segmentation/rows.js', './segmentation/automatic.js', './segmentation/detourage.js',
   './identification/markings.js', './identification/results.js', './identification/local.js', './identification/formats.js', './identification/catalogue.js', './base/store.js', './exports/zip.js',
+  './interface/vue.js', './identification/references-validees.js',
   './vendor/ocr/tesseract.esm.min.js', './vendor/ocr/worker.min.js', './vendor/ocr/core/tesseract-core-lstm.wasm.js', './vendor/ocr/core/tesseract-core-simd-lstm.wasm.js', './vendor/ocr/core/tesseract-core-relaxedsimd-lstm.wasm.js', './vendor/ocr/tessdata/eng.traineddata', './vendor/ocr/tessdata/fra.traineddata', './vendor/ocr/version.json'
 ];
 // Une nouvelle version recharge ses fichiers pour éviter un mélange de versions
