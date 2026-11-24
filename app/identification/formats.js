@@ -4,7 +4,7 @@ const unknown=(niveau='geometrie')=>({valeur:'inconnu',confiance:0,niveau});
 const confidence=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=100?(value>1?value/100:value):0;
 const numeric=value=>typeof value==='number'?value:typeof value==='string'&&value.trim()?Number(value.trim().replace(',','.')):NaN;
 const halfModules=value=>Number.isFinite(value)&&value>0&&value<=100&&Number.isInteger(value*2);
-const validField=field=>field&&halfModules(numeric(field.valeur))&&typeof field.confiance==='number'&&field.confiance>=.8&&field.confiance<=1&&['ocr_reference','ocr_caracteristiques'].includes(field.niveau);
+const validField=field=>field&&halfModules(numeric(field.valeur))&&typeof field.confiance==='number'&&field.confiance>=.8&&field.confiance<=1&&['ocr_reference','ocr_caracteristiques','base_validee'].includes(field.niveau);
 const numberText=value=>String(value).replace('.',',');
 const rounded=value=>Math.round(value*2)/2;
 
@@ -60,7 +60,7 @@ export function reviewRecognitionDimensions(device) {
     largeurLue=null;avertissements.push('La largeur marquée et celle de la référence du catalogue se contredisent.');
   }
   if(largeurLue&&typeof modules.valeur==='number') {
-    if(modules.valeur!==largeurLue.valeur)avertissements.push('La découpe fait '+numberText(modules.valeur)+' module(s), mais '+numberText(largeurLue.valeur)+' module(s) sont indiqués par '+(largeurLue.niveau==='ocr_reference'?'la référence':'le marquage')+'. Vérifier les limites et l’échelle.');
+    if(modules.valeur!==largeurLue.valeur)avertissements.push('La découpe fait '+numberText(modules.valeur)+' module(s), mais '+numberText(largeurLue.valeur)+' module(s) sont indiqués par '+(['ocr_reference','base_validee'].includes(largeurLue.niveau)?'la référence':'le marquage')+'. Vérifier les limites et l’échelle.');
     else if(modules.confiance>=.8)statut='coherent';
   }
   if(avertissements.length)statut='a_verifier';

@@ -4,6 +4,33 @@ export const FIELDS = Object.freeze([
   {key:'calibre',label:'Calibre (A)'},{key:'courbe',label:'Courbe'},{key:'sensibilite',label:'Sensibilité (mA)'},
   {key:'classe',label:'Classe différentielle'},{key:'poles',label:'Pôles'},{key:'modules',label:'Largeur (modules)'}
 ]);
+const commonFields=['famille','marque','reference','modules'];
+const ratedFields=[...commonFields,'calibre','poles'];
+const fieldsByFamily={
+  'disjoncteur':[...ratedFields,'courbe'],
+  'interrupteur différentiel':[...ratedFields,'sensibilite','classe'],
+  'disjoncteur différentiel':FIELDS.map(({key})=>key),
+  'inconnu':commonFields
+};
+// La présentation dépend du type proposé, sans effacer les autres lectures.
+// Un C16 peut encore appartenir à un différentiel dont le marquage manque.
+export function visibleFieldsForFamily(family) {
+  const keys=Object.hasOwn(fieldsByFamily,family)?fieldsByFamily[family]:(FAMILIES.includes(family)?ratedFields:commonFields);
+  return FIELDS.filter(({key})=>keys.includes(key));
+}
+export function incompatibleFieldsForFamily(family) {
+  if(!FAMILIES.includes(family)||['inconnu','autre'].includes(family))return [];
+  const visible=new Set(visibleFieldsForFamily(family).map(({key})=>key));
+  return ['courbe','sensibilite','classe'].filter(key=>!visible.has(key));
+}
+export function changeDeviceFamily(device,family,{humanChoice=false}={}) {
+  if(!humanChoice)throw Error('Un choix humain explicite est nécessaire pour modifier la famille.');
+  if(!device?.labels||!FAMILIES.includes(family))throw Error('Famille non reconnue.');
+  const labels={...device.labels,famille:{valeur:family,confiance:0,niveau:'manuel'}};
+  // « Inconnu » et « autre » ne permettent pas de déclarer une donnée incompatible.
+  for(const key of incompatibleFieldsForFamily(family))labels[key]={valeur:'inconnu',confiance:0,niveau:'manuel'};
+  return {...device,labels,validatedAt:null,validatedBy:null};
+}
 export const createLabels = () => Object.fromEntries(FIELDS.map(({key})=>[key,{valeur:'inconnu',confiance:0,niveau:'manuel'}]));
 const moduleCount = value => { const n=typeof value==='string'?Number(value.trim().replace(',','.')):value;return Number.isFinite(n)&&n>0&&n<=100&&Number.isInteger(n*2)?n:NaN; };
 export function validateLabels(labels,{validator='',modules}={}) {
@@ -14,6 +41,10 @@ export function validateLabels(labels,{validator='',modules}={}) {
     if(!r||!['string','number'].includes(typeof r.valeur)||(typeof r.valeur==='number'&&!Number.isFinite(r.valeur))||!Number.isFinite(r.confiance)||r.confiance<0||r.confiance>1||typeof r.niveau!=='string'||!r.niveau.trim())errors.push(label+' : résultat invalide.');
   }
   if(!FAMILIES.includes(labels?.famille?.valeur)||labels?.famille?.valeur==='inconnu')errors.push('Choisissez une famille identifiable avant de valider. Sinon, laissez cet appareil à vérifier.');
+  for(const key of incompatibleFieldsForFamily(labels?.famille?.valeur)){
+    const value=labels?.[key]?.valeur;
+    if(value!=null&&String(value).trim()&&String(value).trim().toLocaleLowerCase('fr')!=='inconnu')errors.push(FIELDS.find(field=>field.key===key).label+' : donnée incompatible avec ce type. Confirmez explicitement le type ou corrigez la famille avant validation.');
+  }
   if(!Number.isFinite(moduleCount(labels?.modules?.valeur==='inconnu'?modules:labels?.modules?.valeur)))errors.push('La largeur doit être positive et arrondie au demi-module.');
   return {valid:errors.length===0,errors};
 }

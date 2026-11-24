@@ -1,7 +1,7 @@
 import {FIELDS,FAMILIES} from '../interface/labels.js';
 import {reviewRecognitionDimensions} from './formats.js';
 
-const automaticLevels=new Set(['ocr_reference','ocr_caracteristiques','regles_ocr','classifieur']);
+const automaticLevels=new Set(['ocr_reference','ocr_caracteristiques','regles_ocr','classifieur','base_validee']);
 const unknown=value=>value==null||(typeof value==='string'&&(!value.trim()||value.trim().toLocaleLowerCase('fr')==='inconnu'));
 function identityConflicts(labels,fields){
   const conflicts=[];
@@ -41,9 +41,9 @@ export function applyRecognition(device,result){
   const conflicts=identityConflicts(device.labels,result?.champs);
   // Des données de catalogue liées à une identité contradictoire ne complètent
   // pas les champs inconnus sous une autre marque ou une autre famille humaine.
-  const usable=conflicts.length&&result?.format?{...result,champs:Object.fromEntries(Object.entries(result.champs??{}).filter(([,field])=>field?.niveau!=='ocr_reference'))}:result;
+  const usable=conflicts.length&&result?.format?{...result,champs:Object.fromEntries(Object.entries(result.champs??{}).filter(([,field])=>!['ocr_reference','base_validee'].includes(field?.niveau)))}:result;
   let count=mergeRecognition(device,usable);
-  device.recognition={texte:result?.texte??'',confianceOCR:result?.confianceOCR??0,identite:result?.champs??{},limites:[...(result?.limites??[]),...conflicts],conflits:conflicts,preuves:result?.preuves??[],moteur:result?.moteur??'inconnu',format:conflicts.length?null:result?.format??null,sources:result?.sources??[]};
+  device.recognition={texte:result?.texte??'',confianceOCR:result?.confianceOCR??0,identite:result?.champs??{},limites:[...(result?.limites??[]),...conflicts],conflits:conflicts,preuves:result?.preuves??[],moteur:result?.moteur??'inconnu',format:conflicts.length?null:result?.format??null,sources:result?.sources??[],baseValidee:result?.baseValidee??null};
   const review=reviewRecognitionDimensions(device);
   if(unknown(device.labels.modules?.valeur)&&review.largeurLue&&!review.avertissements.length){
     device.labels.modules={...review.largeurLue};count++;
@@ -58,5 +58,5 @@ export function refreshReadingAfterCorrection(device){
   const previous=reading.conflits??[];reading.conflits=identityConflicts(device.labels,reading.identite);
   reading.limites=[...(reading.limites??[]).filter(text=>!previous.includes(text)),...reading.conflits];
   const width=device.labels.modules;
-  if(reading.conflits.length&&['ocr_reference','ocr_caracteristiques'].includes(width?.niveau)&&(!Number.isFinite(device.rect?.modules)||device.detection?.scaleKnown===false))device.labels.modules={valeur:'inconnu',confiance:0,niveau:'geometrie'};
+  if(reading.conflits.length&&['ocr_reference','ocr_caracteristiques','base_validee'].includes(width?.niveau)&&(!Number.isFinite(device.rect?.modules)||device.detection?.scaleKnown===false))device.labels.modules={valeur:'inconnu',confiance:0,niveau:'geometrie'};
 }

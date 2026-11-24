@@ -2,7 +2,7 @@ import {loadPhoto,clarity} from '../app/capture/photo.js';
 import {rectify,cropDevice} from '../app/pretraitement/image.js';
 import {suggestRows,deviceRects} from '../app/segmentation/rows.js';
 import {createLabels,validateDevice} from '../app/interface/labels.js';
-import {saveSession,loadSession,listSessions,deleteSession,closeDatabase} from '../app/base/store.js';
+import {saveSession,loadSession,listSessions,listValidatedDevices,deleteSession,closeDatabase} from '../app/base/store.js';
 import {exportBatch} from '../app/exports/zip.js';
 const qa=window.__qa={status:'pending',tests:[]};
 const assert=(value,message)=>{if(!value)throw Error(message);};
@@ -21,6 +21,19 @@ await check('IndexedDB : sauvegarde, réouverture, Blob et suppression',async()=
   const saved=await loadSession(id);assert(saved.devices[0].validatedBy==='Recette','Validation perdue');assert(saved.original instanceof Blob&&saved.original.size===photo.blob.size,'Blob original perdu');
   const meta=(await listSessions()).find(s=>s.id===id);assert(meta&&!('original' in meta)&&meta.seance==='seance-qa','Métadonnées incorrectes');
   await deleteSession(id);assert(await loadSession(id)===null,'Suppression incomplète');
+});
+await check('IndexedDB : références validées de plusieurs photos, sans images ni propositions',async()=>{
+  const firstId=id+'-references-1',secondId=id+'-references-2',second={...device,id:'appareil-'+crypto.randomUUID()};
+  const proposal={...device,id:'proposition-'+crypto.randomUUID(),validatedAt:null,validatedBy:null};
+  try{
+    await saveSession({id:firstId,original:photo.blob,devices:[device,proposal]});
+    await saveSession({id:secondId,original:photo.blob,devices:[second]});await closeDatabase();
+    const references=await listValidatedDevices(),selected=references.filter(item=>[device.id,second.id,proposal.id].includes(item.id));
+    assert(selected.length===2&&!selected.some(item=>item.id===proposal.id),'Une proposition non validée est devenue une référence');
+    for(const item of selected){assert(Object.keys(item).sort().join(',')==='id,labels,validatedAt,validatedBy','Une image ou une donnée non nécessaire est renvoyée');assert(JSON.stringify(item.labels)===JSON.stringify(device.labels),'Les valeurs ou provenances des étiquettes ont été transformées');}
+    selected[0].labels.famille.valeur='autre';
+    assert((await loadSession(firstId)).devices[0].labels.famille.valeur==='disjoncteur','La projection a modifié les données sauvegardées');
+  }finally{await deleteSession(firstId);await deleteSession(secondId);}
 });
 await check('Export réel du PNG validé et de labels.json',async()=>{const zip=await exportBatch({id:'photo-qa',seance:'seance-qa',devices:[device]});const bytes=new Uint8Array(await zip.arrayBuffer());assert(bytes[0]===80&&bytes[1]===75,'Archive ZIP absente');assert(new TextDecoder().decode(bytes).includes('labels.json'),'Étiquettes absentes');});
 qa.status=qa.tests.every(t=>t.succes)?'pass':'fail';document.querySelector('#results').textContent=JSON.stringify(qa,null,2);

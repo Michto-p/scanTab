@@ -47,6 +47,7 @@ function readOCR(text,score=0) {
 }
 
 export function parseOCR(text,score=0) { return readOCR(text,score).champs; }
+export function readOCRConflicts(text,score=0) { return readOCR(text,score).contradictions; }
 
 const known = field => field?.valeur!==undefined && field.valeur!=='inconnu' && Number.isFinite(field.confiance) && field.confiance>=.8;
 const fold = text => text.normalize('NFD').replace(/\p{M}/gu,'').toLowerCase();

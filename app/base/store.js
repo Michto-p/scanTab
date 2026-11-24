@@ -33,3 +33,20 @@ export async function listSessions(){
   const scanned=new Promise((resolve,reject)=>{const req=tx.objectStore('sessions').openCursor();req.onerror=()=>reject(req.error);req.onsuccess=()=>{const c=req.result;if(!c){resolve();return;}const s=c.value;sessions.push({id:s.id,seance:s.seance||s.id,name:s.name,sourceName:s.sourceName,createdAt:s.createdAt,updatedAt:s.updatedAt,width:s.width,height:s.height,deviceCount:s.devices.length,validatedCount:s.devices.filter(d=>d.validatedAt&&d.validatedBy).length});c.continue();};});
   await Promise.all([scanned,finished]);return sessions.sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
 }
+export async function listValidatedDevices(){
+  const db=await openDatabase(),tx=db.transaction('sessions','readonly'),finished=done(tx),devices=[];
+  // Une seule lecture séquentielle. Les Blobs restent hors du résultat et les
+  // étiquettes conservent leur provenance : le rapprochement les vérifiera.
+  const scanned=new Promise((resolve,reject)=>{
+    const req=tx.objectStore('sessions').openCursor();req.onerror=()=>reject(req.error);
+    req.onsuccess=()=>{
+      const cursor=req.result;if(!cursor){resolve();return;}
+      for(const device of Array.isArray(cursor.value.devices)?cursor.value.devices:[]){
+        if(!device?.validatedAt||!Number.isFinite(Date.parse(device.validatedAt))||typeof device.validatedBy!=='string'||!device.validatedBy.trim())continue;
+        devices.push({id:device.id,labels:device.labels,validatedAt:device.validatedAt,validatedBy:device.validatedBy});
+      }
+      cursor.continue();
+    };
+  });
+  await Promise.all([scanned,finished]);return devices;
+}
