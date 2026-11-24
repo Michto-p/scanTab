@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -18,6 +19,8 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      SCAN_PAGES_ARTIFACT: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -30,6 +33,31 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: app
+          name: ${{ env.SCAN_PAGES_ARTIFACT }}
+      - name: Attendre la disponibilité de cette archive
+        env:
+          SCAN_ACTIONS_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'NODE'
+          const url = `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/artifacts?per_page=100`;
+          for (let attempt = 0; attempt < 8; attempt++) {
+            const response = await fetch(url, {headers: {
+              Authorization: `Bearer ${process.env.SCAN_ACTIONS_TOKEN}`,
+              Accept: 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28'
+            }});
+            if (!response.ok) throw Error(`Lecture des archives refusée : HTTP ${response.status}`);
+            const data = await response.json();
+            if (data.artifacts.some(artifact => artifact.name === process.env.SCAN_PAGES_ARTIFACT && !artifact.expired)) {
+              console.log('Archive de cette tentative disponible pour publication.');
+              process.exit(0);
+            }
+            await new Promise(done => setTimeout(done, 1500));
+          }
+          throw Error('Archive non encore disponible : relancer cette tentative de publication.');
+          NODE
       - name: Publier
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: ${{ env.SCAN_PAGES_ARTIFACT }}
