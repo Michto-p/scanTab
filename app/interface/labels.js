@@ -55,12 +55,21 @@ export function validateDevice(device,validator) {
   if(labels.modules.valeur==='inconnu')labels.modules.valeur=device.rect?.modules??device.modules;
   labels.modules={valeur:moduleCount(labels.modules.valeur),confiance:1,niveau:'manuel'};
   const check=validateLabels(labels,{validator});
-  const editableWidth=device.detection?.scaleKnown===false||!Number.isFinite(device.rect?.modules);
+  const manualModulesConflict=device.detection?.manualModulesConflict===true;
+  const editableWidth=manualModulesConflict||device.detection?.scaleKnown===false||!Number.isFinite(device.rect?.modules);
   if(!editableWidth&&labels.modules.valeur!==device.rect.modules)check.errors.push('La largeur validée doit correspondre au découpage. Corrigez la rangée.');
   if(check.errors.length)throw Error(check.errors.join('\n'));
   // Confiance 1 = confirmation humaine, pas une probabilité de reconnaissance.
   // Un appareil isolé peut être découpé avant que son échelle soit connue.
   // Seule cette confirmation humaine renseigne alors sa largeur, sans changer ses pixels.
   const rect=device.rect&&editableWidth?{...device.rect,modules:labels.modules.valeur}:device.rect;
-  return {...device,rect,labels,validatedAt:new Date().toISOString(),validatedBy:validator.trim()};
+  const result={...device,rect,labels,validatedAt:new Date().toISOString(),validatedBy:validator.trim()};
+  if(manualModulesConflict){
+    // Les pixels n'ont pas changé : la validation arbitre uniquement entre la
+    // nouvelle estimation et la largeur déjà saisie par la personne.
+    result.detection={...device.detection,scaleKnown:true};
+    delete result.detection.manualModulesConflict;
+    if(device.rect?.modules!==labels.modules.valeur)delete result.detection.scale;
+  }
+  return result;
 }

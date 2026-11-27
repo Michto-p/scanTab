@@ -49,6 +49,15 @@ export async function cropDevice(canvas,rect) {
 export async function rectifyDevice(canvas,points,{signal}={}) {
   checkSignal(signal);
   if(!validateQuad(points,canvas.width,canvas.height))throw Error('Contour de façade invalide pour le redressement.');
+  const [a,b,c,d]=points;
+  if(Math.abs(a.y-b.y)<=.25&&Math.abs(b.x-c.x)<=.25&&Math.abs(c.y-d.y)<=.25&&Math.abs(d.x-a.x)<=.25){
+    // Une façade déjà droite n'a besoin d'aucun rééchantillonnage. Arrondir
+    // la moyenne de chaque côté absorbe le bruit géométrique sous-pixel et
+    // préserve les petits caractères OCR, sans choisir un coin arbitraire.
+    const left=Math.round((a.x+d.x)/2),top=Math.round((a.y+b.y)/2),right=Math.round((b.x+c.x)/2),bottom=Math.round((c.y+d.y)/2);
+    const blob=await cropDevice(canvas,{x:left,y:top,width:right-left,height:bottom-top});checkSignal(signal);
+    return {blob,width:right-left,height:bottom-top,points:[{x:left,y:top},{x:right,y:top},{x:right,y:bottom},{x:left,y:bottom}]};
+  }
   // Extraire seulement l'enveloppe avant le transfert au worker évite de
   // recopier les mégapixels de toute la photo pour chaque petit appareil.
   const left=Math.max(0,Math.floor(Math.min(...points.map(p=>p.x)))),top=Math.max(0,Math.floor(Math.min(...points.map(p=>p.y))));

@@ -7,8 +7,10 @@ import {readManifests} from '../training/corpus.mjs';
 import {recognizeOCR,terminateOCR} from '../training/ocr.mjs';
 import {runMobileOCRBrowserTests,runAutonomousUIBrowserTests,runCutoutBrowserTests,runCutoutUIBrowserTests} from './mobile-browser.mjs';
 import {runCollectionBrowserTests} from './collection-browser.mjs';
-import {runRealPhotoBrowserTests,runRealPhotoUIBrowserTests} from './real-photo-browser.mjs';
+import {runRealPhotoBrowserTests,runRealPhotoUIBrowserTests,runLegacyRealPhotoUIBrowserTests} from './real-photo-browser.mjs';
 import {runGuidedBrowserTests} from './guided-browser.mjs';
+import {runFacadeBrowserTests} from './facades-browser.mjs';
+import {runCalibrationBrowserTests} from './calibration-browser.mjs';
 
 // Contrôle Chrome via son protocole natif, sans bibliothèque de test ajoutée.
 const profile = resolve('.local/browser-' + Date.now());
@@ -167,7 +169,14 @@ try {
     console.log(JSON.stringify(await runCutoutUIBrowserTests({evaluate,call}),null,2));
     console.log(JSON.stringify(await runCollectionBrowserTests({evaluate,call}),null,2));
     console.log(JSON.stringify(await runRealPhotoBrowserTests({evaluate}),null,2));
-    console.log(JSON.stringify(await runRealPhotoUIBrowserTests({evaluate}),null,2));
+    console.log(JSON.stringify(await runRealPhotoUIBrowserTests({evaluate,call}),null,2));
+    console.log(JSON.stringify(await runCalibrationBrowserTests({evaluate,call}),null,2));
+  }else if(process.argv.includes('--calibration')){
+    console.log(JSON.stringify(await runCalibrationBrowserTests({evaluate,call}),null,2));
+  }else if(process.argv.includes('--legacy-real')){
+    console.log(JSON.stringify(await runLegacyRealPhotoUIBrowserTests({evaluate}),null,2));
+  }else if(process.argv.includes('--facades')){
+    console.log(JSON.stringify(await runFacadeBrowserTests({evaluate,call}),null,2));
   }else if(process.argv.includes('--guided')){
     console.log(JSON.stringify(await runGuidedBrowserTests({evaluate,call}),null,2));
   }

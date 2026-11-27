@@ -1,7 +1,8 @@
 import {readFile} from 'node:fs/promises';
+import {runFacadeBrowserTests} from './facades-browser.mjs';
 
-// Une photo publique, gardée localement avec attribution, évite de limiter la
-// recette aux dessins. Les cibles sont géométriques et ne valident aucun produit.
+// Régression du moteur 1D historique, conservé pour les corrections avancées.
+// Ces bandes approximatives ne mesurent pas le nouveau détecteur de façades.
 export async function runRealPhotoBrowserTests({evaluate,appBase='/app/'}){
   const [bytes,source]=await Promise.all([
     readFile(new URL('./photos/armoire-domotique-commons.jpg',import.meta.url)),
@@ -12,7 +13,12 @@ export async function runRealPhotoBrowserTests({evaluate,appBase='/app/'}){
   return result;
 }
 
-export async function runRealPhotoUIBrowserTests({evaluate,appBase='/app/',timeoutMs=120000}){
+// La recette principale mesure désormais de vraies façades et un vrai B16.
+// L'ancien minimum de huit rectangles sur miniature ne prouvait pas leur nature.
+export async function runRealPhotoUIBrowserTests(options){return runFacadeBrowserTests(options);}
+
+// Diagnostic conservé : ce cas reste un échec connu du nouveau détecteur.
+export async function runLegacyRealPhotoUIBrowserTests({evaluate,appBase='/app/',timeoutMs=120000}){
   const [bytes,source]=await Promise.all([
     readFile(new URL('./photos/armoire-domotique-commons.jpg',import.meta.url)),
     readFile(new URL('./photos/armoire-domotique-commons.annotations.json',import.meta.url),'utf8')
@@ -89,5 +95,5 @@ async function checkRealPhoto({imageURL,annotation,appBase}){
     const coverage=extent/(region.right-region.left),pass=candidates.length>=8&&coverage>=.7&&!overlap;
     tests.push({nom:region.nom+' : appareils séparés malgré le coffret voisin',succes:pass,appareils:candidates.length,couverture:Number(coverage.toFixed(3)),chevauchement:overlap});
   }
-  return {status:tests.every(t=>t.succes)?'pass':'fail',tests,ms,limites:annotation.limites};
+  return {status:tests.every(t=>t.succes)?'pass':'fail',moteur:'analyzeLayout historique (corrections avancées)',tests,ms,limites:annotation.limites};
 }

@@ -1,13 +1,15 @@
 import {loadPhoto,clarity} from '../capture/photo.js';
-import {validateQuad,snapHalfModule} from '../pretraitement/geometry.js';
-import {rectify,cropDevice,cutoutDevice,pngBlob} from '../pretraitement/image.js';
+import {validateQuad,snapHalfModule,quadsOverlap,mapPoint,homography,rectifiedSize} from '../pretraitement/geometry.js';
+import {rectify,rectifyDevice,cropDevice,cutoutDevice,pngBlob} from '../pretraitement/image.js';
 import {calculateImage} from '../pretraitement/calcul.js';
 import {validateRow,deviceRects} from '../segmentation/rows.js';
 import {calibrateRow} from '../segmentation/automatic.js';
+import {divideFacadeRow,measureRectifiedFacades} from '../pretraitement/rangees.js';
 import {recognizeLocal} from '../identification/local.js';
 import {applyRecognition,refreshReadingAfterCorrection} from '../identification/results.js';
 import {createLabels,validateDevice,invalidateDevice,changeDeviceFamily} from './labels.js';
 import {workspaceMarkup,selectionMarkup,readingMarkup,dimensionsMarkup} from './vue.js';
+import {prepareSelectedCandidates} from './selection-geometrie.js';
 import {applyKnownReference} from '../identification/references-validees.js';
 import {saveSession,loadSession,listSessions,deleteSession,listValidatedDevices} from '../base/store.js';
 import {exportBatch} from '../exports/zip.js';
@@ -50,8 +52,22 @@ async function run(fn){
 function releaseCanvases(){for(const canvas of new Set([original,corrected]))if(canvas){canvas.width=0;canvas.height=0;}}
 function defaults(width,height){return [{x:0,y:0},{x:width,y:0},{x:width,y:height},{x:0,y:height}];}
 function editGeometry(){session.pointsSource='manuel';session.geometryDirty=Boolean(session.rectified);changed();draw();}
-function editRows(){session.cutsDirty=true;changed();draw();}
-function widthEditable(device){return device.detection?.scaleKnown===false||!Number.isFinite(device.rect?.modules);}
+function editRows(){
+  calibrating=null;
+  session.cutsDirty=true;
+  if(session.selection?.rowIndex!=null){
+    const row=session.rows[session.selection.rowIndex];
+    if(row)session.selection={...session.selection,bounds:{x:row.left,y:row.top,width:row.right-row.left,height:row.bottom-row.top},points:row.points??null,modules:row.calibrationConfirmed===false?'':row.modules};
+    else session.selection=null;
+    session.chosenCandidates=[];
+  }
+  changed();draw();
+}
+function widthEditable(device){return device.detection?.manualModulesConflict||device.detection?.scaleKnown===false||!Number.isFinite(device.rect?.modules);}
+function containsPoint(point,points,rect){
+  if(points?.length===4)return points.every((a,i)=>{const b=points[(i+1)%4];return (b.x-a.x)*(point.y-a.y)-(b.y-a.y)*(point.x-a.x)>=0;});
+  return point.x>=rect.x&&point.x<=rect.x+rect.width&&point.y>=rect.y&&point.y<=rect.y+rect.height;
+}
 function enabled(name){return name==='capture'||(name==='perspective'&&original)||(name==='rows'&&corrected&&!session.geometryDirty)||(name==='labels'&&session?.devices.length&&!session.geometryDirty&&!session.cutsDirty);}
 function updateExportButton(){const validated=session&&(session.devices.some(d=>d.validatedAt)||photosMetadata.some(s=>s.id!==session.id&&s.seance===group&&s.validatedCount>0));$('#export').disabled=!validated||session.geometryDirty||session.cutsDirty;}
 function updateSummary(){$('#summary').textContent=session?.devices.length?`${session.devices.length} vignettes proposées · ${session.devices.filter(d=>d.validatedAt).length} validées sur cette photo`:session?'Sélectionnez les appareils à lire.':'Photo, sélection, lecture.';}
@@ -71,14 +87,19 @@ function draw(){
   const sx=canvas.width/view.width,sy=canvas.height/view.height;ctx.translate(-view.x*sx,-view.y*sy);
   canvas.dataset.view=JSON.stringify(view);
   ctx.lineWidth=2;
+  const outline=(points,rect,fill=false)=>{
+    const contour=points?.length===4?points:[{x:rect.x,y:rect.y},{x:rect.x+rect.width,y:rect.y},{x:rect.x+rect.width,y:rect.y+rect.height},{x:rect.x,y:rect.y+rect.height}];
+    ctx.beginPath();contour.forEach((p,i)=>i?ctx.lineTo(p.x*sx,p.y*sy):ctx.moveTo(p.x*sx,p.y*sy));ctx.closePath();if(fill)ctx.fill();ctx.stroke();
+  };
   if(step==='perspective'){
     ctx.beginPath();session.points.forEach((p,i)=>i?ctx.lineTo(p.x*sx,p.y*sy):ctx.moveTo(p.x*sx,p.y*sy));ctx.closePath();ctx.fillStyle='#164f9120';ctx.fill();ctx.strokeStyle=validateQuad(session.points,source.width,source.height)?'#f4b544':'#ed4747';ctx.stroke();
     session.points.forEach((p,i)=>{const x=Math.min(canvas.width-10,Math.max(10,p.x*sx)),y=Math.min(canvas.height-10,Math.max(10,p.y*sy));ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fillStyle='#164f91';ctx.fill();ctx.strokeStyle='#fff';ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText(String(i+1),x,y+4);});
   }
   if(step==='rows'&&$('#manual-rows')?.closest('details')?.open)session.rows.forEach((row,i)=>{
     const left=(row.left??0)*sx,right=(row.right??source.width)*sx,top=row.top*sy,bottom=row.bottom*sy;
-    ctx.fillStyle='#164f9120';ctx.fillRect(left,top,right-left,bottom-top);ctx.strokeStyle='#f4b544';ctx.strokeRect(left,top,right-left,bottom-top);
-    row.cuts.slice(1,-1).forEach(cut=>{const x=left+(right-left)*cut/row.modules;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke();});
+    ctx.fillStyle='#164f9120';ctx.strokeStyle='#f4b544';outline(row.points,{x:row.left,y:row.top,width:row.right-row.left,height:row.bottom-row.top},true);
+    if(row.points&&row.calibrationConfirmed!==false&&validateRow(row,source.width,source.height))divideFacadeRow(row).slice(0,-1).forEach(({points})=>{ctx.beginPath();ctx.moveTo(points[1].x*sx,points[1].y*sy);ctx.lineTo(points[2].x*sx,points[2].y*sy);ctx.stroke();});
+    else if(!row.points)row.cuts.slice(1,-1).forEach(cut=>{const x=left+(right-left)*cut/row.modules;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke();});
     ctx.fillStyle='#164f91';ctx.fillRect(left,Math.max(0,top-24),100,24);ctx.fillStyle='#fff';ctx.textAlign='left';ctx.font='14px Arial';ctx.fillText(`Rangée ${i+1}`,left+6,Math.max(18,top-7));
   });
   if(step==='rows'){
@@ -86,17 +107,21 @@ function draw(){
     (session.candidates??[]).forEach((candidate,index)=>{
       const x=candidate.left*sx,y=candidate.top*sy,w=(candidate.right-candidate.left)*sx,h=(candidate.bottom-candidate.top)*sy;
       ctx.strokeStyle=chosen.has(index)?'#176caa':'#74858e';ctx.lineWidth=chosen.has(index)?3:1;
-      ctx.fillStyle=chosen.has(index)?'#176caa30':'#ffffff08';ctx.fillRect(x,y,w,h);ctx.strokeRect(x,y,w,h);
+      ctx.fillStyle=chosen.has(index)?'#176caa30':'#ffffff08';outline(candidate.points,{x:candidate.left,y:candidate.top,width:candidate.right-candidate.left,height:candidate.bottom-candidate.top},true);
       if(chosen.has(index)){ctx.fillStyle='#176caa';ctx.fillRect(x,y,22,20);ctx.fillStyle='#fff';ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText('✓',x+11,y+14);}
     });
     const bounds=drag?.selection?drag.bounds:session.selection?.bounds;
     if(bounds){ctx.strokeStyle='#c68c18';ctx.lineWidth=3;ctx.setLineDash([7,4]);ctx.strokeRect(bounds.x*sx,bounds.y*sy,bounds.width*sx,bounds.height*sy);ctx.setLineDash([]);}
   }
-  if(step==='rows'&&calibrating?.first!=null){const row=session.rows[calibrating.row];ctx.strokeStyle='#b62e2e';ctx.beginPath();ctx.moveTo(calibrating.first*sx,row.top*sy);ctx.lineTo(calibrating.first*sx,row.bottom*sy);ctx.stroke();}
+  if(step==='rows'&&calibrating?.first!=null){
+    const row=session.rows[calibrating.row];let a={x:calibrating.first,y:row.top},b={x:calibrating.first,y:row.bottom};
+    if(row.points){const plane=measureRectifiedFacades({...row,facades:[]}),p=calibrating.firstPoint,position=mapPoint(plane.transform,p.x,p.y),back=homography(row.points,plane.width,plane.height);a=mapPoint(back,position.x,0);b=mapPoint(back,position.x,plane.height);}
+    ctx.strokeStyle='#b62e2e';ctx.beginPath();ctx.moveTo(a.x*sx,a.y*sy);ctx.lineTo(b.x*sx,b.y*sy);ctx.stroke();
+  }
   if(step==='labels'&&session.devices[selected]){
     ctx.strokeStyle='#164f91';ctx.lineWidth=1.5;
-    for(const device of session.devices){const r=device.rect;ctx.strokeRect(r.x*sx,r.y*sy,r.width*sx,r.height*sy);}
-    const r=session.devices[selected].rect;ctx.strokeStyle='#f4b544';ctx.lineWidth=4;ctx.strokeRect(r.x*sx,r.y*sy,r.width*sx,r.height*sy);
+    for(const device of session.devices)outline(device.quad,device.rect);
+    const device=session.devices[selected];ctx.strokeStyle='#f4b544';ctx.lineWidth=4;outline(device.quad,device.rect);
   }
   $('#photo-info').textContent=`${source.width} × ${source.height} px · ${step==='perspective'?'Original':'Image de travail'} · découpes pleine résolution`;
 }
@@ -204,7 +229,7 @@ async function openPhoto(){
   // Préserver leurs cadrages enregistrés, y compris ceux encore à appliquer.
   loaded.pointsSource??='manuel';
   const photo=await loadPhoto(loaded.original),redressed=loaded.rectified?await loadPhoto(loaded.rectified):null;
-  releaseCanvases();session=loaded;original=photo.canvas;corrected=redressed?.canvas??null;group=session.seance||session.id;selected=0;showOriginal=false;revision=0;savedRevision=0;
+  releaseCanvases();calibrating=null;session=loaded;original=photo.canvas;corrected=redressed?.canvas??null;group=session.seance||session.id;selected=0;showOriginal=false;revision=0;savedRevision=0;
   $('#session-name').value=session.name;$('#group-id').value=group;preference('seance',group);
   step=enabled('labels')?'labels':enabled('rows')?'rows':'perspective';$('#save-status').textContent='Enregistré sur cet appareil';message('Photo et validations restaurées.');
 }
@@ -216,7 +241,7 @@ async function applyPerspective({replaceConfirmed=false,signal}={}){
   const full=defaults(original.width,original.height).every((p,i)=>Math.abs(p.x-session.points[i].x)<.01&&Math.abs(p.y-session.points[i].y)<.01);
   const result=full?original:await rectify(original,session.points,{signal,onProgress:progress=>{$('#analysis-meter').value=progress;}}),blob=await pngBlob(result);
   checkAnalysis(signal);
-  corrected=result;session.rectified=blob;session.appliedPoints=structuredClone(session.points);session.rows=[];session.candidates=[];session.chosenCandidates=[];session.selection=null;session.devices=[];session.geometryDirty=false;session.cutsDirty=false;selected=0;showOriginal=false;step='rows';changed();await persist();message('Photo cadrée. Sélectionnez les appareils à lire.');
+  corrected=result;calibrating=null;session.rectified=blob;session.appliedPoints=structuredClone(session.points);session.rows=[];session.candidates=[];session.chosenCandidates=[];session.selection=null;session.devices=[];session.geometryDirty=false;session.cutsDirty=false;selected=0;showOriginal=false;step='rows';changed();await persist();message('Photo cadrée. Sélectionnez les appareils à lire.');
 }
 function addRow(){const height=corrected.height;session.rows.push({top:Math.round(height*.2),bottom:Math.round(height*.8),left:0,right:corrected.width,modules:1,cuts:[0,1],calibrationConfirmed:false});editRows();message('Rangée ajoutée : ajustez ses limites puis renseignez son échelle ou repérez un appareil de 18 mm.');}
 function layoutSample(source=corrected,maximum=1100){
@@ -225,16 +250,18 @@ function layoutSample(source=corrected,maximum=1100){
 }
 async function proposeRows({signal}={}){
   if(session.rows.length&&!confirm('Remplacer les rangées et leurs séparations manuelles par une nouvelle proposition ?'))return;
-  return detectLayout({signal});
+  return detectLayout({signal,legacy:true});
 }
-async function detectLayout({signal}={}){
+async function detectLayout({signal,legacy=false}={}){
+  calibrating=null;
   analysisStage('Repérage des appareils et estimation des largeurs…');checkAnalysis(signal);
-  const {image,sx,sy}=layoutSample(),result=await calculateImage('rangées',image,{signal});checkAnalysis(signal);
+  const {image,sx,sy}=layoutSample(),result=await calculateImage(legacy?'rangées':'appareils',image,{signal});checkAnalysis(signal);
+  const points=value=>value?.map(p=>({x:p.x*sx,y:p.y*sy}));
   const scale=source=>source?{...source,pixelsPerModule:source.pixelsPerModule*sx,pixelsPerMillimeter:source.pixelsPerMillimeter*sx}:null;
-  session.rows=result.rows.map(r=>({...r,top:r.top*sy,bottom:r.bottom*sy,left:r.left*sx,right:r.right*sx,calibrationConfirmed:true,scale:scale(r.scale)}));
+  session.rows=result.rows.map(r=>({...r,points:points(r.points),top:r.top*sy,bottom:r.bottom*sy,left:r.left*sx,right:r.right*sx,calibrationConfirmed:r.calibrationConfirmed??true,scale:scale(r.scale)}));
   // Les limites d'une façade suffisent pour la lire ; le pas de 18 mm reste
   // inconnu si aucune répétition ou référence précise ne le démontre.
-  const candidates=(result.candidates??[]).filter(c=>c.confiance>=.75).map(c=>({...c,left:c.left*sx,right:c.right*sx,top:c.top*sy,bottom:c.bottom*sy,scale:scale(c.scale)}));
+  const candidates=(result.candidates??[]).filter(c=>c.confiance>=.75).map(c=>({...c,points:points(c.points),left:c.left*sx,right:c.right*sx,top:c.top*sy,bottom:c.bottom*sy,scale:scale(c.scale)}));
   if(!session.rows.length)session.rows=result.bands.map(r=>({...r,top:r.top*sy,bottom:r.bottom*sy,left:0,right:corrected.width,modules:1,cuts:[0,1],calibrationConfirmed:false}));
   session.layoutWarnings=result.warnings;session.candidates=candidates;session.chosenCandidates=[];session.selection=null;changed();draw();
   const unknown=candidates.filter(c=>!Number.isFinite(c.modules)).length;
@@ -242,7 +269,7 @@ async function detectLayout({signal}={}){
   return {rows:session.rows,candidates};
 }
 function chooseArea(bounds,{modules='',rowIndex=null}={}){
-  session.selection={bounds,modules,rowIndex};selectionDrawing=false;
+  session.selection={bounds,modules,rowIndex,points:rowIndex===null?null:session.rows[rowIndex]?.points??null};selectionDrawing=false;
   session.chosenCandidates=(session.candidates??[]).flatMap((c,index)=>{const x=(c.left+c.right)/2,y=(c.top+c.bottom)/2;return x>=bounds.x&&x<=bounds.x+bounds.width&&y>=bounds.y&&y<=bounds.y+bounds.height?[index]:[];});
   changed();render();message('Zone choisie. Indiquez sa largeur totale en modules, puis lancez la lecture.');
 }
@@ -258,10 +285,14 @@ async function previewSelection({signal}={}){
   const image=sample.getContext('2d').getImageData(0,0,sample.width,sample.height),rx=bounds.width/image.width,ry=bounds.height/image.height;
   sample.width=0;sample.height=0;
   analysisStage('Recherche des séparations dans la zone…');checkAnalysis(signal);
-  const result=total===null?await calculateImage('rangées',image,{signal}):await calculateImage('sélection',image,{signal,bounds:{x:0,y:0,width:image.width,height:image.height},modules:total});
+  // bounds est l'enveloppe du quad : seuls des arrondis flottants peuvent
+  // dépasser de quelques ulps l'aperçu, sans signifier un coin hors photo.
+  const rowPoints=area.points?.map(p=>({x:Math.max(0,Math.min(image.width,(p.x-bounds.x)/rx)),y:Math.max(0,Math.min(image.height,(p.y-bounds.y)/ry))}));
+  const result=total===null?await calculateImage('appareils',image,{signal}):await calculateImage('zone-modulaire',image,{signal,points:rowPoints,modules:total});
   const scale=value=>value?{...value,pixelsPerModule:value.pixelsPerModule*rx,pixelsPerMillimeter:value.pixelsPerMillimeter*rx}:null;
-  result.candidates=result.candidates.map(c=>({...c,left:bounds.x+c.left*rx,right:bounds.x+c.right*rx,top:bounds.y+c.top*ry,bottom:bounds.y+c.bottom*ry,scale:scale(c.scale)}));
-  result.rows=result.rows.map(r=>({...r,left:bounds.x+r.left*rx,right:bounds.x+r.right*rx,top:bounds.y+r.top*ry,bottom:bounds.y+r.bottom*ry,scale:scale(r.scale),calibrationConfirmed:true}));
+  const points=value=>value?.map(p=>({x:bounds.x+p.x*rx,y:bounds.y+p.y*ry}));
+  result.candidates=result.candidates.map(c=>({...c,points:points(c.points),left:bounds.x+c.left*rx,right:bounds.x+c.right*rx,top:bounds.y+c.top*ry,bottom:bounds.y+c.bottom*ry,scale:scale(c.scale)}));
+  result.rows=result.rows.map(r=>({...r,points:points(r.points),left:bounds.x+r.left*rx,right:bounds.x+r.right*rx,top:bounds.y+r.top*ry,bottom:bounds.y+r.bottom*ry,scale:scale(r.scale),calibrationConfirmed:r.calibrationConfirmed??true}));
   // Sans étalon, le rectangle tracé reste lisible même si sa segmentation est
   // indécidable. Sa largeur reste inconnue jusqu'à une preuve ou confirmation.
   if(total===null&&!result.candidates.length)result.candidates=[{left:bounds.x,right:bounds.x+bounds.width,top:bounds.y,bottom:bounds.y+bounds.height,modules:null,confiance:.5,niveau:'geometrie',groupId:'zone-choisie',reason:'Zone choisie : séparations et largeur à confirmer.'}];
@@ -277,10 +308,11 @@ async function readSelection(){
     if(!candidates.length)throw Error(session.layoutWarnings?.join(' ')||'Sélectionnez un appareil ou encadrez une rangée.');
     // Revenir à la sélection permet d'ajouter une autre rangée, sans perdre les
     // lectures déjà corrigées. Une même découpe n'est pas créée deux fois.
-    const sameRect=(c,r)=>Math.abs(c.left-r.x)<2&&Math.abs(c.top-r.y)<2&&Math.abs(c.right-r.x-r.width)<2&&Math.abs(c.bottom-r.y-r.height)<2;
-    const fresh=candidates.filter(c=>!session.devices.some(d=>sameRect(c,d.rect))),start=session.devices.length;
-    if(fresh.length)await cropDetected(fresh,{signal,append:true});
-    const indices=fresh.length?session.devices.map((_,i)=>i).slice(start):session.devices.flatMap((d,i)=>candidates.some(c=>sameRect(c,d.rect))?[i]:[]);
+    const beforeIds=new Set(session.devices.map(d=>d.id)),prepared=prepareSelectedCandidates(session.devices,candidates);
+    session.devices=prepared.devices;changed();
+    if(prepared.crops.length)await cropDetected(prepared.crops,{signal,append:true});
+    const targetIds=new Set([...prepared.selectedIds,...session.devices.filter(d=>!beforeIds.has(d.id)).map(d=>d.id)]);
+    const indices=session.devices.flatMap((d,i)=>targetIds.has(d.id)?[i]:[]);
     step='labels';await readDevicesCore(indices,signal);editingFamily=false;
   });
 }
@@ -288,20 +320,27 @@ async function cropRegions(regions,{signal,append=false}={}){
   const existing=append?session.devices:[],devices=[],started=performance.now();
   for(const region of regions){
     checkAnalysis(signal);analysisStage('Découpage et détourage : appareil '+(devices.length+1)+'/'+regions.length+'…');
-    const {rect,rowIndex,scale,detection}=region,labels=createLabels();
+    const {rect,rowIndex,scale,detection,points}=region,labels=createLabels(),previous=existing.find(d=>d.id===region.replaceDeviceId);
     labels.modules=Number.isFinite(rect.modules)?{valeur:rect.modules,confiance:Math.min(scale?.confidence??0,detection?.confiance??1),niveau:Number.isFinite(detection?.confiance)||scale?.source==='separations-visibles'?'geometrie':scale?.source==='nombre-confirme'||scale?.source==='repere-18-mm'?'calibration':'decoupage'}:{valeur:'inconnu',confiance:0,niveau:'geometrie'};
-    const blob=await cropDevice(corrected,rect);checkAnalysis(signal);
+    // Un contour corrigé exige une nouvelle lecture et validation, tout en
+    // conservant les corrections déjà saisies explicitement par la personne.
+    if(previous)for(const [key,field]of Object.entries(previous.labels))if(field.niveau==='manuel')labels[key]=structuredClone(field);
+    if(previous&&labels.modules.niveau==='manuel'&&labels.modules.valeur!=='inconnu'&&Number.isFinite(rect.modules)){
+      const count=Number(String(labels.modules.valeur).trim().replace(',','.'));detection.manualModulesConflict=!Number.isFinite(count)||count!==rect.modules;
+    }
+    const straight=points?await rectifyDevice(corrected,points,{signal}):null;
+    const blob=straight?.blob??await cropDevice(corrected,rect);checkAnalysis(signal);
     const cutout=await cutoutDevice(blob,{signal});checkAnalysis(signal);
-    devices.push({id:uuid(),rowIndex,rect,blob,cutoutBlob:cutout.blob,cutout:cutout.details,detection,labels,validatedAt:null,validatedBy:null});
+    devices.push({id:previous?.id??uuid(),rowIndex:previous?.rowIndex??rowIndex,rect,quad:straight?.points??null,imageSize:straight?{width:straight.width,height:straight.height}:null,blob,cutoutBlob:cutout.blob,cutout:cutout.details,detection,labels,validatedAt:null,validatedBy:null});
   }
-  checkAnalysis(signal);session.devices=[...existing,...devices];session.cutsDirty=false;session.cropDurationMs=Math.round(performance.now()-started);selected=existing.length;showOriginal=false;editingFamily=false;step='labels';changed();await persist();
+  checkAnalysis(signal);const replacements=new Map(devices.map(d=>[d.id,d]));session.devices=[...existing.map(d=>replacements.get(d.id)??d),...devices.filter(d=>!existing.some(old=>old.id===d.id))];session.cutsDirty=false;session.cropDurationMs=Math.round(performance.now()-started);selected=session.devices.findIndex(d=>d.id===devices[0]?.id);showOriginal=false;editingFamily=false;step='labels';changed();await persist();
   message(String(devices.length)+' vignettes créées. La lecture et la validation restent indépendantes de l’estimation du pas de 18 mm.');return true;
 }
 async function cropDetected(candidates,{signal,append=false}={}){
   const groups=new Map(),offset=append?Math.max(-1,...session.devices.map(d=>d.rowIndex).filter(i=>Number.isInteger(i)&&i>=0))+1:0;
   const regions=candidates.filter(c=>[c.left,c.right,c.top,c.bottom].every(Number.isFinite)&&c.left>=0&&c.right<=corrected.width&&c.top>=0&&c.bottom<=corrected.height&&c.right>c.left&&c.bottom>c.top).map(c=>{
     if(!groups.has(c.groupId))groups.set(c.groupId,-1-groups.size-(append?session.devices.length:0));
-    return {rowIndex:Number.isInteger(c.rowIndex)&&c.rowIndex>=0?c.rowIndex+offset:groups.get(c.groupId),rect:{x:c.left,y:c.top,width:c.right-c.left,height:c.bottom-c.top,modules:c.modules},scale:c.scale,detection:{confiance:c.confiance,niveau:c.niveau,reason:c.reason,scaleKnown:Number.isFinite(c.modules)}};
+    return {replaceDeviceId:c.replaceDeviceId,rowIndex:Number.isInteger(c.rowIndex)&&c.rowIndex>=0?c.rowIndex+offset:groups.get(c.groupId),points:c.points,rect:{x:c.left,y:c.top,width:c.right-c.left,height:c.bottom-c.top,modules:c.modules},scale:c.scale,detection:{confiance:c.confiance,niveau:c.niveau,edgeSupport:c.edgeSupport,reason:c.reason,scaleKnown:Number.isFinite(c.modules)}};
   });
   if(!regions.length)throw Error('Aucune façade suffisamment délimitée pour la lecture.');
   return cropRegions(regions,{signal,append});
@@ -310,9 +349,10 @@ async function crop({replaceConfirmed=false,signal}={}){
   if(!session.rows.length||!session.rows.every(r=>validateRow(r,corrected.width,corrected.height)))throw Error('Vérifiez les limites, le nombre de modules et les séparations de chaque rangée.');
   if(session.rows.some(r=>r.calibrationConfirmed===false))throw Error('Échelle inconnue : renseignez le nombre de modules ou repérez les deux bords d’un appareil de 18 mm.');
   const ordered=[...session.rows].sort((a,b)=>a.top-b.top||a.left-b.left);
-  if(ordered.some((r,i)=>ordered.slice(0,i).some(other=>r.top<other.bottom&&r.bottom>other.top&&r.left<other.right&&r.right>other.left)))throw Error('Les zones d’appareils se chevauchent. Corrigez leurs limites.');
+  const contour=row=>row.points??[{x:row.left,y:row.top},{x:row.right,y:row.top},{x:row.right,y:row.bottom},{x:row.left,y:row.bottom}];
+  if(ordered.some((r,i)=>ordered.slice(0,i).some(other=>quadsOverlap(contour(r),contour(other)))))throw Error('Les zones d’appareils se chevauchent. Corrigez leurs limites.');
   if(session.devices.length&&!replaceConfirmed&&!confirm('Ce découpage remplacera les vignettes et leurs étiquettes sur cette photo. Continuer ?'))return;
-  const regions=ordered.flatMap((row,rowIndex)=>deviceRects(row,corrected.width).map(rect=>({rect,rowIndex,scale:row.scale,detection:{niveau:'geometrie',scaleKnown:true}})));
+  const regions=ordered.flatMap((row,rowIndex)=>(row.points?divideFacadeRow(row):deviceRects(row,corrected.width).map(rect=>({rect}))).map(region=>({...region,rowIndex,scale:row.scale,detection:{niveau:'geometrie',scaleKnown:true}})));
   session.rows=ordered;return cropRegions(regions,{signal});
 }
 async function validate(){const d=validateDevice(session.devices[selected],$('#validator').value);session.devices[selected]=d;changed();await persist();await refreshPhotos();message('Appareil validé. Toute correction ultérieure demandera une nouvelle validation.');}
@@ -353,18 +393,14 @@ async function autoAnalyzePhoto(){
   if(!session)throw Error('Prenez ou importez une photo.');
   if(session.devices.length&&!confirm('Reprendre l’analyse automatique remplacera les découpes et les étiquettes de cette photo. Continuer ?'))return;
   return withAnalysis(async signal=>{
-    analysisStage('Recherche du cadrage sur cet appareil…');
+    analysisStage('Recherche des contours et des rangées…');
     if(!corrected||session.geometryDirty){
-      if(session.pointsSource!=='manuel'){
-        const {image,sx,sy}=layoutSample(original,900),framing=await calculateImage('cadrage',image,{signal});checkAnalysis(signal);
-        const points=framing.points?.map(p=>({x:p.x*sx,y:p.y*sy}));
-        session.framing={...framing,points};
-        if(points&&framing.confiance>=.8&&validateQuad(points,original.width,original.height)){session.points=points;session.pointsSource='geometrie';changed();}
-      }
+      // Un grand contour de coffret n'est plus un préalable : chaque façade
+      // conserve ses quatre coins et sera redressée lors de sa propre découpe.
       await applyPerspective({replaceConfirmed:true,signal});
     }
     checkAnalysis(signal);step='rows';await detectLayout({signal});
-    message(session.candidates.length?'Photo cadrée. Touchez les appareils à lire, ou encadrez une rangée.':'Photo prête. Encadrez une rangée et renseignez sa largeur en modules.');
+    message(session.candidates.length?'Contours proposés. Touchez les appareils à lire, ou choisissez une rangée.':'Aucun contour assez fiable. Encadrez une seule rangée pour poursuivre.');
   });
 }
 export async function createCurrentBatch(){
@@ -414,20 +450,33 @@ function pointerDown(event){
   if(busy||!['perspective','rows','labels'].includes(step))return;
   const p=pointerCoordinates(event);
   if(step==='labels'){
-    const hit=session.devices.map((device,index)=>({rect:device.rect,index})).filter(({rect:r})=>p.x>=r.x&&p.x<=r.x+r.width&&p.y>=r.y&&p.y<=r.y+r.height).sort((a,b)=>a.rect.width*a.rect.height-b.rect.width*b.rect.height)[0];
+    const hit=session.devices.map((device,index)=>({rect:device.rect,points:device.quad,index})).filter(({rect,points})=>containsPoint(p,points,rect)).sort((a,b)=>a.rect.width*a.rect.height-b.rect.width*b.rect.height)[0];
     if(hit){selected=hit.index;showOriginal=false;editingFamily=false;render();}return;
   }
   if(step==='rows'&&!calibrating&&!$('#manual-rows')?.closest('details')?.open){
     if(selectionDrawing){drag={selection:true,first:p,bounds:{x:p.x,y:p.y,width:0,height:0}};event.currentTarget.setPointerCapture(event.pointerId);event.preventDefault();draw();return;}
-    const hit=(session.candidates??[]).map((c,index)=>({c,index})).filter(({c})=>p.x>=c.left&&p.x<=c.right&&p.y>=c.top&&p.y<=c.bottom).sort((a,b)=>(a.c.right-a.c.left)*(a.c.bottom-a.c.top)-(b.c.right-b.c.left)*(b.c.bottom-b.c.top))[0];
+    const hit=(session.candidates??[]).map((c,index)=>({c,index})).filter(({c})=>containsPoint(p,c.points,{x:c.left,y:c.top,width:c.right-c.left,height:c.bottom-c.top})).sort((a,b)=>(a.c.right-a.c.left)*(a.c.bottom-a.c.top)-(b.c.right-b.c.left)*(b.c.bottom-b.c.top))[0];
     if(hit){const chosen=new Set(session.chosenCandidates??[]);chosen.has(hit.index)?chosen.delete(hit.index):chosen.add(hit.index);session.chosenCandidates=[...chosen];session.selection=null;changed();render();}
     else message('Encadrez la rangée si ses appareils ne sont pas proposés.');
     return;
   }
   if(step==='rows'&&calibrating){
     const row=session.rows[calibrating.row];
-    if(!row||p.y<row.top||p.y>row.bottom||p.x<row.left||p.x>row.right){message('Touchez le bord de l’appareil à l’intérieur de la rangée sélectionnée.',true);return;}
-    if(calibrating.first==null){calibrating.first=p.x;draw();message('Touchez maintenant l’autre bord de ce même appareil de 18 mm.');return;}
+    if(!row||!containsPoint(p,row.points,{x:row.left,y:row.top,width:row.right-row.left,height:row.bottom-row.top})){message('Touchez le bord de l’appareil à l’intérieur de la rangée sélectionnée.',true);return;}
+    if(calibrating.first==null){calibrating.first=p.x;calibrating.firstPoint={x:p.x,y:p.y};draw();message('Touchez maintenant l’autre bord de ce même appareil de 18 mm.');return;}
+    if(row.points){
+      const index=calibrating.row,first=calibrating.firstPoint;
+      void run(()=>withAnalysis(async signal=>{
+        try{
+          analysisStage('Calibration dans le plan redressé…');
+          const {image,sx,sy}=layoutSample(),point=p=>({x:p.x/sx,y:p.y/sy});
+          const result=await calculateImage('calibration-rangée',image,{points:row.points.map(point),first:point(first),second:point(p),signal});checkAnalysis(signal);
+          const size=rectifiedSize(row.points),factor=size.width/result.rectifiedSize.width;
+          session.rows[index]={...row,modules:result.modules,cuts:result.cuts,calibrationConfirmed:true,scale:{...result.scale,pixelsPerModule:result.scale.pixelsPerModule*factor,pixelsPerMillimeter:result.scale.pixelsPerMillimeter*factor}};
+          calibrating=null;editRows();message('Échelle établie sur votre repère de 18 mm, dans la rangée redressée. Vérifiez les joints.');
+        }catch(error){if(calibrating){calibrating.first=null;calibrating.firstPoint=null;}throw error;}
+      }));return;
+    }
     try{
       const {image,sx,sy}=layoutSample(),scaled={...row,top:row.top/sy,bottom:row.bottom/sy,left:row.left/sx,right:row.right/sx};
       const result=calibrateRow(image,scaled,Math.abs(p.x-calibrating.first)/sx);
@@ -442,11 +491,13 @@ function pointerDown(event){
   }else{
     const candidates=session.rows.flatMap((r,i)=>[{row:i,bound:'top',d:Math.abs(r.top-p.y)},{row:i,bound:'bottom',d:Math.abs(r.bottom-p.y)}]).sort((a,b)=>a.d-b.d);
     if(candidates[0]?.d<p.threshold/2)drag=candidates[0];
-    else{const i=session.rows.findIndex(r=>p.y>=r.top&&p.y<=r.bottom&&p.x>=r.left&&p.x<=r.right);if(i<0)return;const row=session.rows[i],cut=snapHalfModule((p.x-row.left)/(row.right-row.left)*row.modules);if(cut<=0||cut>=row.modules)return;row.cuts=row.cuts.includes(cut)?row.cuts.filter(c=>c!==cut):[...row.cuts,cut].sort((a,b)=>a-b);editRows();renderPanel();draw();return;}
+    else{const i=session.rows.findIndex(r=>containsPoint(p,r.points,{x:r.left,y:r.top,width:r.right-r.left,height:r.bottom-r.top}));if(i<0)return;const row=session.rows[i],plane=row.points?measureRectifiedFacades({...row,facades:[]}):null;
+      const fraction=plane?mapPoint(plane.transform,p.x,p.y).x/plane.width:(p.x-row.left)/(row.right-row.left),cut=snapHalfModule(fraction*row.modules);
+      if(cut<=0||cut>=row.modules)return;row.cuts=row.cuts.includes(cut)?row.cuts.filter(c=>c!==cut):[...row.cuts,cut].sort((a,b)=>a-b);editRows();renderPanel();draw();return;}
   }
   event.currentTarget.setPointerCapture(event.pointerId);event.preventDefault();
 }
-function pointerMove(event){if(!drag||busy)return;const p=pointerCoordinates(event);if(drag.selection){drag.bounds={x:Math.min(p.x,drag.first.x),y:Math.min(p.y,drag.first.y),width:Math.abs(p.x-drag.first.x),height:Math.abs(p.y-drag.first.y)};}else if(drag.point!==undefined){session.points[drag.point]={x:p.x,y:p.y};editGeometry();}else{const row=session.rows[drag.row];row[drag.bound]=drag.bound==='top'?Math.min(row.bottom-1,Math.round(p.y)):Math.max(row.top+1,Math.round(p.y));editRows();}draw();}
+function pointerMove(event){if(!drag||busy)return;const p=pointerCoordinates(event);if(drag.selection){drag.bounds={x:Math.min(p.x,drag.first.x),y:Math.min(p.y,drag.first.y),width:Math.abs(p.x-drag.first.x),height:Math.abs(p.y-drag.first.y)};}else if(drag.point!==undefined){session.points[drag.point]={x:p.x,y:p.y};editGeometry();}else{const row=session.rows[drag.row];row[drag.bound]=drag.bound==='top'?Math.min(row.bottom-1,Math.round(p.y)):Math.max(row.top+1,Math.round(p.y));row.points=null;editRows();}draw();}
 function pointerEnd(event){
   if(!drag)return;
   const previous=drag;drag=null;
@@ -483,11 +534,11 @@ export async function mountWorkspace(){
       'toggle-cutout':()=>{showOriginal=!showOriginal;},'export-cutout':exportDevicePNG,
       'calibrate-row':()=>{calibrating={row:Number(button.dataset.index),first:null};message('Touchez les deux bords verticaux d’un appareil connu d’un module (18 mm), dans cette rangée.');},
       'reset-points':()=>{session.points=defaults(session.width,session.height);editGeometry();},
-      'remove-row':()=>{session.rows.splice(Number(button.dataset.index),1);editRows();},
+      'remove-row':()=>{session.rows.splice(Number(button.dataset.index),1);session.selection=null;session.chosenCandidates=[];editRows();},
       previous:()=>{selected--;showOriginal=false;editingFamily=false;},next:()=>{selected++;showOriginal=false;editingFamily=false;},
       invalidate:async()=>{session.devices[selected]=invalidateDevice(session.devices[selected]);changed();await persist();await refreshPhotos();message('Appareil remis à vérifier.');},
-      'new-group':async()=>{if(session)await persist();session=null;original=null;corrected=null;step='capture';group=newGroup();preference('seance',group);$('#group-id').value=group;$('#save-status').textContent='Nouvelle séance';message('Nouvelle séance prête. Prenez ou importez les photos de cette prise de vue.');},
-      delete:async()=>{const id=$('#saved-photos').value;if(!id)return;if(!confirm('Supprimer cette photo et ses validations de cet appareil ?'))return;if(session?.id===id){clearTimeout(saveTimer);await saveChain.catch(()=>{});session=null;original=null;corrected=null;step='capture';revision=0;savedRevision=0;}await deleteSession(id);await refreshPhotos();message('Photo supprimée de cet appareil.');}
+      'new-group':async()=>{if(session)await persist();calibrating=null;session=null;original=null;corrected=null;step='capture';group=newGroup();preference('seance',group);$('#group-id').value=group;$('#save-status').textContent='Nouvelle séance';message('Nouvelle séance prête. Prenez ou importez les photos de cette prise de vue.');},
+      delete:async()=>{const id=$('#saved-photos').value;if(!id)return;if(!confirm('Supprimer cette photo et ses validations de cet appareil ?'))return;if(session?.id===id){clearTimeout(saveTimer);await saveChain.catch(()=>{});calibrating=null;session=null;original=null;corrected=null;step='capture';revision=0;savedRevision=0;}await deleteSession(id);await refreshPhotos();message('Photo supprimée de cet appareil.');}
     };
     if(actions[action])void run(actions[action]);
   });
@@ -505,11 +556,11 @@ export async function mountWorkspace(){
     if(input.dataset.label){const key=input.dataset.label;if(key==='modules'&&!widthEditable(session.devices[selected]))return;if(key==='famille'){session.devices[selected]=changeDeviceFamily(session.devices[selected],input.value,{humanChoice:true});refreshReadingAfterCorrection(session.devices[selected]);editingFamily=false;changed();render();return;}const provenance=input.closest('label')?.querySelector('small');if(provenance)provenance.textContent='Saisie en cours · à confirmer';const d=session.devices[selected];d.labels[key]={valeur:input.value.trim()||'inconnu',confiance:0,niveau:'manuel'};refreshReadingAfterCorrection(d);
       const widthInput=$('[data-label="modules"]');if(key!=='modules'&&widthInput&&widthInput.value!==String(d.labels.modules.valeur)){widthInput.value=d.labels.modules.valeur;}
       if($('.dimension-note'))$('.dimension-note').outerHTML=dimensionPanel(d);session.devices[selected]=invalidateDevice(d);changed();updateExportButton();updateSummary();document.querySelector(`[data-device="${selected}"]`)?.classList.remove('validated');const badge=$('#tools .badge');if(badge){badge.textContent='À vérifier';badge.classList.remove('validated');}$('#tools .validation-note')?.remove();return;}
-    if(input.dataset.bound){const row=session.rows[Number(input.dataset.row)],bound=input.dataset.bound,max=['left','right'].includes(bound)?corrected.width:corrected.height;row[bound]=Math.round(Number(input.value)/100*max);editRows();return;}
+    if(input.dataset.bound){const row=session.rows[Number(input.dataset.row)],bound=input.dataset.bound,max=['left','right'].includes(bound)?corrected.width:corrected.height;row[bound]=Math.round(Number(input.value)/100*max);row.points=null;editRows();return;}
   });
   $('#tools').addEventListener('change',event=>{
     const input=event.target;
-    if(input.dataset.modules!==undefined){const row=session.rows[Number(input.dataset.row)],modules=Number(input.value);if(!Number.isFinite(modules)||modules<.5||modules>100||snapHalfModule(modules)!==modules){input.value=row.modules;message('Choisissez un nombre entre 0,5 et 100 modules, par demi-module.',true);return;}row.modules=modules;row.calibrationConfirmed=true;row.scale={source:'nombre-confirme',confidence:1,moduleMillimeters:18,pixelsPerModule:(row.right-row.left)/modules};row.cuts=[0,...Array.from({length:Math.ceil(modules)-1},(_,i)=>i+1).filter(c=>c<modules),modules];editRows();renderPanel();}
+    if(input.dataset.modules!==undefined){const row=session.rows[Number(input.dataset.row)],modules=Number(input.value);if(!Number.isFinite(modules)||modules<.5||modules>100||snapHalfModule(modules)!==modules){input.value=row.modules;message('Choisissez un nombre entre 0,5 et 100 modules, par demi-module.',true);return;}const unchanged=row.calibrationConfirmed!==false&&row.modules===modules,pitch=(row.points?rectifiedSize(row.points).width:row.right-row.left)/modules;row.modules=modules;row.calibrationConfirmed=true;row.scale={source:'nombre-confirme',confidence:1,moduleMillimeters:18,pixelsPerModule:pitch,pixelsPerMillimeter:pitch/18,...(row.points?{plane:'rangee-redressee'}:{})};if(!unchanged)row.cuts=[0,modules];editRows();renderPanel();}
     if(input.dataset.cuts!==undefined){const row=session.rows[Number(input.dataset.row)],cuts=input.value.trim()?input.value.split(';').map(s=>Number(s.trim().replace(',','.'))):[];const next={...row,cuts:[0,...cuts,row.modules]};if(!validateRow(next,corrected.width,corrected.height)){input.value=row.cuts.slice(1,-1).join('; ');message('Séparations invalides : utilisez des demi-modules croissants, séparés par des points-virgules.',true);return;}row.cuts=next.cuts;editRows();}
   });
   const canvas=$('#photo-canvas');canvas.addEventListener('pointerdown',pointerDown);canvas.addEventListener('pointermove',pointerMove);for(const name of ['pointerup','pointercancel'])canvas.addEventListener(name,pointerEnd);

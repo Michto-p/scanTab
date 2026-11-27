@@ -61,7 +61,11 @@ export async function recognizeLocal(blob,{onProgress=()=>{},signal}={}){
           const score=Number.isFinite(data.confidence)?Math.max(0,Math.min(100,data.confidence))/100:0;
           const result={...identifyMarkings(data.text||'',score,{tsv:data.tsv}),texte:data.text||'',confianceOCR:score,moteur:'tesseract-embarque'};
           if(first)return reconcileMarkingReadings(first,result);
-          if(['reference','calibre','famille'].some(key=>result.champs[key]?.valeur!=='inconnu'&&result.champs[key]?.confiance>=.8))return result;
+          const reliable=key=>result.champs[key]?.valeur!=='inconnu'&&result.champs[key]?.confiance>=.8;
+          // Un différentiel lisible peut encore perdre le seul mot de sa classe
+          // après redressement : la seconde passe garde le même seuil strict.
+          const missingDifferentialClass=['interrupteur différentiel','disjoncteur différentiel'].includes(result.champs.famille?.valeur)&&reliable('famille')&&reliable('sensibilite')&&!reliable('classe');
+          if(!missingDifferentialClass&&['reference','calibre','famille'].some(reliable))return result;
           first=result;
         }finally{image.width=0;image.height=0;}
       }

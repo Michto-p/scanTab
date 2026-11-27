@@ -87,12 +87,13 @@ export async function runGuidedBrowserTests({evaluate,call,appBase='/app/',timeo
       const s=await window.__guided.load(),expected=${JSON.stringify(annotation.rows[0].devices.map(device=>device.modules))};
       return s.devices.length===6&&JSON.stringify(s.devices.map(device=>device.rect.modules))===JSON.stringify(expected)&&document.querySelectorAll('.thumbnail').length===6;
     })()`);
-    await check('Les PNG gardent la résolution de leurs rectangles et aucune validation automatique',`(async()=>{
-      const s=await window.__guided.load();
+    await check('Les PNG redressés gardent la pleine résolution et aucune validation automatique',`(async()=>{
+      const s=await window.__guided.load(),{rectifiedSize}=await import(new URL(${JSON.stringify(appBase+'pretraitement/geometry.js')},location.href));
       for(const device of s.devices){
         if(!(device.blob instanceof Blob)||device.blob.type!=='image/png'||device.validatedAt||device.validatedBy)return false;
         const bitmap=await createImageBitmap(device.blob),r=device.rect;
-        try{if(bitmap.width!==Math.round(r.x+r.width)-Math.round(r.x)||bitmap.height!==Math.round(r.y+r.height)-Math.round(r.y)||bitmap.height<350)return false;}
+        const expected=device.quad?rectifiedSize(device.quad):{width:Math.round(r.x+r.width)-Math.round(r.x),height:Math.round(r.y+r.height)-Math.round(r.y)};
+        try{if(bitmap.width!==expected.width||bitmap.height!==expected.height||bitmap.height<350)return false;}
         finally{bitmap.close();}
       }
       return true;

@@ -25,6 +25,34 @@ await check('Façade inclinée : PNG redressé depuis la source pleine résoluti
     const after=photo.canvas.getContext('2d').getImageData(0,0,720,520).data;assert(after.every((v,i)=>v===before[i]),'Source modifiée');
   }finally{decoded.canvas.width=reference.width=0;}
 });
+await check('Une façade droite conserve ses pixels sans flou de rééchantillonnage',async()=>{
+  const rect={x:74.2,y:70.3,width:88.1,height:149.3},points=[{x:rect.x,y:rect.y},{x:rect.x+rect.width,y:rect.y},{x:rect.x+rect.width,y:rect.y+rect.height},{x:rect.x,y:rect.y+rect.height}];
+  const actual=await rectifyDevice(photo.canvas,points),expected=await cropDevice(photo.canvas,rect);
+  const one=await loadPhoto(actual.blob),two=await loadPhoto(expected);
+  try{
+    assert(one.width===two.width&&one.height===two.height,'Les joints arrondis divergent');
+    const a=one.canvas.getContext('2d').getImageData(0,0,one.width,one.height).data,b=two.canvas.getContext('2d').getImageData(0,0,two.width,two.height).data;
+    assert(a.every((v,i)=>v===b[i]),'Une façade déjà droite a été rééchantillonnée');
+  }finally{one.canvas.width=two.canvas.width=0;}
+});
+await check('Un bruit de contour sous-pixel conserve le crop droit pixel pour pixel',async()=>{
+  const rect={x:74.55,y:70.55,width:87.9,height:148.9};
+  const points=[{x:74.43,y:70.43},{x:162.33,y:70.67},{x:162.57,y:219.57},{x:74.67,y:219.33}];
+  const straight=[{x:rect.x,y:rect.y},{x:rect.x+rect.width,y:rect.y},{x:rect.x+rect.width,y:rect.y+rect.height},{x:rect.x,y:rect.y+rect.height}];
+  const rounded=[{x:75,y:71},{x:162,y:71},{x:162,y:219},{x:75,y:219}];
+  const noisy=await rectifyDevice(photo.canvas,points),exact=await rectifyDevice(photo.canvas,straight),expected=await cropDevice(photo.canvas,rect);
+  const images=await Promise.all([loadPhoto(noisy.blob),loadPhoto(exact.blob),loadPhoto(expected)]);
+  try{
+    assert(JSON.stringify(noisy.points)===JSON.stringify(rounded),'Les bords ne sont pas la moyenne arrondie des deux coins');
+    assert(JSON.stringify(noisy.points)===JSON.stringify(exact.points),'Les contours réellement découpés divergent');
+    const reference=images[2],pixels=reference.canvas.getContext('2d').getImageData(0,0,reference.width,reference.height).data;
+    for(const image of images.slice(0,2)){
+      assert(image.width===reference.width&&image.height===reference.height,'Dimensions modifiées par le bruit sous-pixel');
+      const actual=image.canvas.getContext('2d').getImageData(0,0,image.width,image.height).data;
+      assert(actual.every((value,index)=>value===pixels[index]),'Le bruit sous-pixel a déclenché un rééchantillonnage');
+    }
+  }finally{for(const image of images){image.canvas.width=image.canvas.height=0;}}
+});
 await check('Image uniforme : aucun diagnostic de netteté inventé',async()=>{const c=document.createElement('canvas');c.width=200;c.height=100;c.getContext('2d').fillRect(0,0,200,100);const quality=clarity(c);assert(quality.score===0&&quality.warning,'Limite non signalée');});
 const id='qa-'+crypto.randomUUID();
 await check('IndexedDB : sauvegarde, réouverture, Blob et suppression',async()=>{

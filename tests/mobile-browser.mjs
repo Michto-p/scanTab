@@ -182,13 +182,13 @@ function startAutonomousUIQA({source,annotation,appBase}) {
       let cancelledBeforeOCR=false;
       const progress=document.querySelector('#analysis-progress'),stageObserver=new MutationObserver(()=>{
         const status=document.querySelector('#analysis-status').textContent;
-        if(!progress.hidden&&/Recherche.*cadrage/i.test(status)){
+        if(!progress.hidden&&/Repérage des appareils/i.test(status)){
           cancelledBeforeOCR=true;qa.cancelledStage=status;stageObserver.disconnect();document.querySelector('#analysis-cancel').click();
         }
       });
       stageObserver.observe(progress,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});
       try{await importFixture();}finally{stageObserver.disconnect();}
-      assert(cancelledBeforeOCR,'La recherche de cadrage ne propose pas d’arrêt avant l’OCR.');
+      assert(cancelledBeforeOCR,'La recherche des contours ne propose pas d’arrêt avant l’OCR.');
       assert(/annul/i.test(document.querySelector('#message').textContent),'L’annulation du cadrage n’a pas été signalée.');
       assert(!document.querySelector('#workspace').inert&&progress.hidden,'L’interface reste bloquée après l’annulation du cadrage.');
       const interrupted=await loadSession(document.querySelector('#saved-photos').value);
@@ -256,6 +256,8 @@ function startAutonomousUIQA({source,annotation,appBase}) {
         canvas.dispatchEvent(new PointerEvent('pointerup',{...coordinates,buttons:0}));
       }
       working.close();
+      // La rangée orientée est maintenant calibrée dans le worker local.
+      await idle();
       assert(/Échelle établie/.test(document.querySelector('#message').textContent),'Les deux touches n’ont pas établi le repère de 18 mm.');
       assert(document.querySelector('[data-row="0"][data-modules]').value==='8','Le repère d’un module n’a pas conservé les huit modules de la rangée.');
       // Le redécoupage constitue une action destructive confirmée uniquement
