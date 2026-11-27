@@ -1,0 +1,235 @@
+{
+  "width": 2040,
+  "height": 970,
+  "sourceLocale": "tableau-abb-plastron-commons.jpg",
+  "source": "https://commons.wikimedia.org/wiki/File:One_row_of_ABB_230V_16A_fuses_in_fuse_box_in_German_shop,_2024_(max_crop).jpg",
+  "licence": "CC0 1.0, Pittigrilli ; transformation de recette locale",
+  "usage": "Transformation simulee de pixels photographiques reels ; aucune nouvelle photo terrain ni donnee d apprentissage.",
+  "transformation": "Homographie des quatre coins source vers (150,95),(1830,10),(1970,720),(45,900), interpolation bicubique ; perspective simulee.",
+  "homographieSourceVersImage": [
+    0.9700249088508925,
+    -0.18822636942077958,
+    150.0,
+    -0.04375157153633392,
+    1.159201425143729,
+    95.0,
+    5.192617969994133e-05,
+    -0.00022800594946365327,
+    1.0
+  ],
+  "tolerancePixels": 20,
+  "modulesTotauxVisuels": 10,
+  "largeursRelativesVisuelles": [
+    4,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "appareils": [
+    {
+      "id": "large-f204a",
+      "quad": [
+        {
+          "x": 180.7914,
+          "y": 170.6677
+        },
+        {
+          "x": 860.231,
+          "y": 128.8151
+        },
+        {
+          "x": 855.2552,
+          "y": 746.3321
+        },
+        {
+          "x": 99.7268,
+          "y": 813.677
+        }
+      ],
+      "modulesRelatifsVisuels": 4,
+      "marquagesVisibles": [
+        "ABB",
+        "F204 A",
+        "40A",
+        "IΔn = 0,03A",
+        "TEST"
+      ],
+      "limite": "Autres intensités imprimées pour des caractéristiques différentes ; ne pas les confondre avec le calibre nominal."
+    },
+    {
+      "id": "simple-b16-1",
+      "quad": [
+        {
+          "x": 867.4439,
+          "y": 128.4219
+        },
+        {
+          "x": 1027.275,
+          "y": 118.5618
+        },
+        {
+          "x": 1042.0501,
+          "y": 729.6819
+        },
+        {
+          "x": 862.3188,
+          "y": 745.7025
+        }
+      ],
+      "modulesRelatifsVisuels": 1,
+      "marquagesVisibles": [
+        "ABB",
+        "S 201",
+        "B16"
+      ]
+    },
+    {
+      "id": "simple-b16-2",
+      "quad": [
+        {
+          "x": 1033.4674,
+          "y": 118.2246
+        },
+        {
+          "x": 1188.5385,
+          "y": 108.6451
+        },
+        {
+          "x": 1219.3524,
+          "y": 716.721
+        },
+        {
+          "x": 1042.0501,
+          "y": 729.6819
+        }
+      ],
+      "modulesRelatifsVisuels": 1,
+      "marquagesVisibles": [
+        "ABB",
+        "S 201",
+        "B16"
+      ]
+    },
+    {
+      "id": "simple-b16-3",
+      "quad": [
+        {
+          "x": 1194.6975,
+          "y": 109.4466
+        },
+        {
+          "x": 1346.1848,
+          "y": 101.199
+        },
+        {
+          "x": 1395.8728,
+          "y": 700.9579
+        },
+        {
+          "x": 1219.3524,
+          "y": 716.721
+        }
+      ],
+      "modulesRelatifsVisuels": 1,
+      "marquagesVisibles": [
+        "ABB",
+        "S 201",
+        "B16"
+      ]
+    },
+    {
+      "id": "simple-b16-4",
+      "quad": [
+        {
+          "x": 1353.1222,
+          "y": 101.948
+        },
+        {
+          "x": 1499.4065,
+          "y": 93.9741
+        },
+        {
+          "x": 1571.6518,
+          "y": 685.261
+        },
+        {
+          "x": 1395.8728,
+          "y": 700.9579
+        }
+      ],
+      "modulesRelatifsVisuels": 1,
+      "marquagesVisibles": [
+        "ABB",
+        "S 201",
+        "B16"
+      ]
+    },
+    {
+      "id": "simple-b16-5",
+      "quad": [
+        {
+          "x": 1505.9656,
+          "y": 92.4999
+        },
+        {
+          "x": 1651.7793,
+          "y": 82.3482
+        },
+        {
+          "x": 1740.2436,
+          "y": 670.206
+        },
+        {
+          "x": 1571.6518,
+          "y": 685.261
+        }
+      ],
+      "modulesRelatifsVisuels": 1,
+      "marquagesVisibles": [
+        "ABB",
+        "S 201",
+        "B16"
+      ]
+    },
+    {
+      "id": "simple-b16-6",
+      "quad": [
+        {
+          "x": 1658.5382,
+          "y": 83.0869
+        },
+        {
+          "x": 1802.3021,
+          "y": 76.3661
+        },
+        {
+          "x": 1904.1456,
+          "y": 652.838
+        },
+        {
+          "x": 1740.2436,
+          "y": 670.206
+        }
+      ],
+      "modulesRelatifsVisuels": 1,
+      "marquagesVisibles": [
+        "ABB",
+        "S 201",
+        "B16"
+      ]
+    }
+  ],
+  "toleranceSourcePixels": 12,
+  "amplificationMaxApprox": 1.625,
+  "noteTolerance": "Tolerance de source 12 px propagee par amplification maximale du jacobien ; choisie avant comparaison au detecteur.",
+  "fondRGB": [
+    240,
+    240,
+    238
+  ],
+  "interpolation": "Bicubique Pillow, image source RGB, matrice inverse pour Image.transform(PERSPECTIVE).",
+  "provenanceContours": "Tous les quadrilateres attendus sont les contours source transformes par homographieSourceVersImage, sans ajustement au detecteur."
+}

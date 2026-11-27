@@ -1,0 +1,13 @@
+{
+  "description": "Scènes géométriques synthétiques de contours 2D. Ni photo réelle ni précision métier. Les modules sont documentaires ; le détecteur ne reçoit aucune échelle physique.",
+  "width": 640,
+  "height": 420,
+  "scene": {"width": 540, "height": 330},
+  "row": {"x": 70, "y": 70, "pitch": 40, "height": 180, "widths": [1, 2, 2.5, 1]},
+  "scenarios": [
+    {"nom": "façades complètes avec marquages intérieurs", "points": [{"x":50,"y":40},{"x":590,"y":40},{"x":590,"y":370},{"x":50,"y":370}], "labels":true, "tolerance":5},
+    {"nom": "rangée inclinée et largeur deux et demi", "points": [{"x":95,"y":20},{"x":615,"y":110},{"x":560,"y":410},{"x":40,"y":320}], "labels":true, "tolerance":7},
+    {"nom": "perspective à fuite commune", "points": [{"x":45,"y":65},{"x":600,"y":25},{"x":560,"y":390},{"x":100,"y":350}], "labels":true, "tolerance":8},
+    {"nom": "hauteur différente sans ratio imposé", "points": [{"x":50,"y":40},{"x":590,"y":40},{"x":590,"y":370},{"x":50,"y":370}], "height":110, "labels":true, "tolerance":5}
+  ]
+}

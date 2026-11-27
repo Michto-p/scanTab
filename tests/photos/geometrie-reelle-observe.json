@@ -1,0 +1,1125 @@
+{
+  "date": "2026-11-27T08:51:03.887Z",
+  "versionRecette": "2026-11-27",
+  "moteur": "analyzeFacades, sans nombre de modules fourni",
+  "runtime": {
+    "node": "v24.11.1",
+    "plateforme": "win32",
+    "architecture": "x64"
+  },
+  "empreintesModules": {
+    "facades.js": "b533f30b31d70e1220362065e5209e3b49d04f8fafd74c6ea6eca2e13a0a0803",
+    "analyse.js": "d5d87614d2dcd4936d90b5a6803ec9d7ba1af0817e4e08d77b3253c3b75f9c94",
+    "affinage.js": "27f89508444344aaaba7195b668d96885795ca1ebbb1741b58279dfb099853ec"
+  },
+  "empreintesInchangeesPendantMesure": true,
+  "validationElectrique": false,
+  "donneesApprentissage": false,
+  "methode": {
+    "annotations": "Quadrilateres externes approximatifs etablis avant les mesures ; aucune annotation adaptee aux sorties.",
+    "appariement": "Un a un, ordre decroissant de recouvrement polygonal IoU.",
+    "tolerance": "IoU >= 0,80 et erreur de chacun des quatre coins <= toleranceCoinsPixels.",
+    "rotation": "12 degres horaires ; quads attendus transformes par la meme homographie que les pixels. Tolerance source conservee : 12 px.",
+    "perspective": "Homographie simulee documentee ; tolerance 20 px fixee avant mesure par amplification maximale approximative 1,625 des 12 px source.",
+    "performance": "Un passage Node local par image, lecture des RGBA exclue, geometrie, regroupement et comparaison geometrique inclus, OCR exclu. Aucun resultat de performance mobile."
+  },
+  "limites": [
+    "Deux photographies distinctes seulement, dont une ancienne miniature agrandie. Les deux variantes ABB ne sont pas des prises de vue independantes.",
+    "Les rapports de modules des annotations sont visuels ; aucune mesure physique ou validation electrique ne se deduit de cette recette.",
+    "La perspective peut encore produire des bandes de marquage courtes et des fragments a la place de facades completes.",
+    "L ancienne armoire ne permet pas de certifier le nombre de produits ni leurs references ; seules ses deux fenetres visibles servent de repere.",
+    "Les modules des propositions restent inconnus sans etalon assez fiable ou confirmation humaine."
+  ],
+  "ocrObserveSeparément": "ocr-reel-pwa-observe.json",
+  "cas": [
+    {
+      "nom": "abb-frontale",
+      "fichier": "tableau-abb-plastron-commons.jpg",
+      "dimensions": {
+        "width": 1920,
+        "height": 590
+      },
+      "sha256Image": "7223e65dc05cb4a9c6ab2b9d349f7031ef0199cd43d134e87d43c532a4801a87",
+      "annotations": "tableau-abb-plastron-commons.annotations.json",
+      "sha256AnnotationsUtilisees": "f8fe0080a80b0797a9140eb558318f1b42cd2ce8eb8f49907e15a0c73913f126",
+      "typeSource": "photo_reelle",
+      "photoOrigine": "tableau-abb-plastron-commons.jpg",
+      "licence": "CC0 1.0, Pittigrilli",
+      "figure": "geometrie-reelle-abb-frontale.observe.jpg",
+      "dureeMs": 1380,
+      "contoursAttendus": 7,
+      "contoursProposes": 7,
+      "toleranceCoinsPixels": 12,
+      "correspondancesDansTolerance": 5,
+      "comparaisons": [
+        {
+          "attendu": "large-f204a",
+          "candidat": 0,
+          "iou": 0.9626,
+          "erreurCoinMax": 14.39,
+          "contourComplet": false,
+          "modulesAttendus": 4,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-1",
+          "candidat": 1,
+          "iou": 0.9405,
+          "erreurCoinMax": 9.73,
+          "contourComplet": true,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-2",
+          "candidat": 2,
+          "iou": 0.9584,
+          "erreurCoinMax": 8.12,
+          "contourComplet": true,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-3",
+          "candidat": 3,
+          "iou": 0.9466,
+          "erreurCoinMax": 8.22,
+          "contourComplet": true,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-4",
+          "candidat": 4,
+          "iou": 0.9179,
+          "erreurCoinMax": 14.83,
+          "contourComplet": false,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-5",
+          "candidat": 5,
+          "iou": 0.9385,
+          "erreurCoinMax": 9.06,
+          "contourComplet": true,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-6",
+          "candidat": 6,
+          "iou": 0.9519,
+          "erreurCoinMax": 10.42,
+          "contourComplet": true,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        }
+      ],
+      "candidatsNonApparies": [],
+      "fenetresVisibles": [],
+      "propositions": [
+        {
+          "id": "facade-1",
+          "quad": [
+            {
+              "x": 40.0974906066042,
+              "y": 50.73396715891962
+            },
+            {
+              "x": 773.392793409696,
+              "y": 52.141962086954095
+            },
+            {
+              "x": 755.3432351213777,
+              "y": 538.221942141173
+            },
+            {
+              "x": 29.02275004700962,
+              "y": 535.4456973594413
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-2",
+          "quad": [
+            {
+              "x": 773.392793409696,
+              "y": 52.141962086954095
+            },
+            {
+              "x": 957.8953708232526,
+              "y": 52.4962241314736
+            },
+            {
+              "x": 941.559180252166,
+              "y": 538.9337230375795
+            },
+            {
+              "x": 755.3432351213777,
+              "y": 538.221942141173
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-3",
+          "quad": [
+            {
+              "x": 957.8953708232526,
+              "y": 52.4962241314736
+            },
+            {
+              "x": 1141.2837899580923,
+              "y": 52.848346888860824
+            },
+            {
+              "x": 1124.4817344312776,
+              "y": 539.6329154697588
+            },
+            {
+              "x": 941.559180252166,
+              "y": 538.9337230375795
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-4",
+          "quad": [
+            {
+              "x": 1141.2837899580923,
+              "y": 52.848346888860824
+            },
+            {
+              "x": 1316.398829228637,
+              "y": 53.184583990302734
+            },
+            {
+              "x": 1306.2074451314295,
+              "y": 540.3275331576878
+            },
+            {
+              "x": 1124.4817344312776,
+              "y": 539.6329154697588
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-5",
+          "quad": [
+            {
+              "x": 1316.398829228637,
+              "y": 53.184583990302734
+            },
+            {
+              "x": 1501.249493268402,
+              "y": 53.53951439339804
+            },
+            {
+              "x": 1490.1112525541762,
+              "y": 541.0304762746588
+            },
+            {
+              "x": 1306.2074451314295,
+              "y": 540.3275331576878
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-6",
+          "quad": [
+            {
+              "x": 1500.9775337137864,
+              "y": 59.17406180759505
+            },
+            {
+              "x": 1691.0647757578627,
+              "y": 59.21098833622893
+            },
+            {
+              "x": 1680.4553082758516,
+              "y": 541.758036218637
+            },
+            {
+              "x": 1490.3832279105713,
+              "y": 541.031515857294
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-7",
+          "quad": [
+            {
+              "x": 1691.0270891942773,
+              "y": 68.20325128013138
+            },
+            {
+              "x": 1876.2508780343437,
+              "y": 68.335148106517
+            },
+            {
+              "x": 1856.2304366013827,
+              "y": 542.4299087498406
+            },
+            {
+              "x": 1680.492887889033,
+              "y": 541.7581798607443
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        }
+      ],
+      "groupes": [
+        {
+          "id": "rangee-1",
+          "points": [
+            {
+              "x": 40.33472356938425,
+              "y": 40.350915815103065
+            },
+            {
+              "x": 1876.7325357193993,
+              "y": 56.92923651994164
+            },
+            {
+              "x": 1856.230436601383,
+              "y": 542.4299087498407
+            },
+            {
+              "x": 29.02275004700962,
+              "y": 535.4456973594413
+            }
+          ],
+          "modules": null,
+          "calibrationConfirmed": false,
+          "scale": null,
+          "facades": [
+            "facade-1",
+            "facade-2",
+            "facade-3",
+            "facade-4",
+            "facade-5",
+            "facade-6",
+            "facade-7"
+          ]
+        }
+      ],
+      "avertissements": [
+        "Propositions de contours à vérifier : un rectangle seul ne prouve pas la présence d’un appareil électrique.",
+        "18 mm définit une largeur physique, pas une échelle en pixels. Confirmez le nombre de modules si aucun étalon fiable n’est visible."
+      ]
+    },
+    {
+      "nom": "abb-rotation12",
+      "fichier": "tableau-abb-plastron-rotation12.png",
+      "dimensions": {
+        "width": 2097,
+        "height": 1073
+      },
+      "sha256Image": "c2564e60eca1c338f990ea51dfdc315e2b0f93557cffe26cd301c32edb900fc3",
+      "annotations": "tableau-abb-plastron-rotation12.annotations.json",
+      "sha256AnnotationsUtilisees": "d8d1397f6346361ef741ca53b8fe8bfa58be47f9efdd8d17864befa8e0e904a8",
+      "typeSource": "transformation_simulee_de_photo_reelle",
+      "photoOrigine": "tableau-abb-plastron-commons.jpg",
+      "licence": "CC0 1.0, Pittigrilli",
+      "figure": "geometrie-reelle-abb-rotation12.observe.jpg",
+      "dureeMs": 2652,
+      "contoursAttendus": 7,
+      "contoursProposes": 7,
+      "toleranceCoinsPixels": 12,
+      "correspondancesDansTolerance": 6,
+      "comparaisons": [
+        {
+          "attendu": "large-f204a",
+          "candidat": 0,
+          "iou": 0.9635,
+          "erreurCoinMax": 15.17,
+          "contourComplet": false,
+          "modulesAttendus": 4,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-1",
+          "candidat": 1,
+          "iou": 0.9492,
+          "erreurCoinMax": 9.25,
+          "contourComplet": true,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-2",
+          "candidat": 2,
+          "iou": 0.9553,
+          "erreurCoinMax": 9.16,
+          "contourComplet": true,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-3",
+          "candidat": 3,
+          "iou": 0.9503,
+          "erreurCoinMax": 9.2,
+          "contourComplet": true,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-4",
+          "candidat": 4,
+          "iou": 0.9486,
+          "erreurCoinMax": 11.12,
+          "contourComplet": true,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-5",
+          "candidat": 5,
+          "iou": 0.9373,
+          "erreurCoinMax": 8.73,
+          "contourComplet": true,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-6",
+          "candidat": 6,
+          "iou": 0.9591,
+          "erreurCoinMax": 9.7,
+          "contourComplet": true,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        }
+      ],
+      "candidatsNonApparies": [],
+      "fenetresVisibles": [],
+      "propositions": [
+        {
+          "id": "facade-1-contour-1",
+          "quad": [
+            {
+              "x": 195.2234966130299,
+              "y": 105.44376148422126
+            },
+            {
+              "x": 916.4793645678332,
+              "y": 259.5615205756973
+            },
+            {
+              "x": 800.620358193616,
+              "y": 731.7310342744647
+            },
+            {
+              "x": 93.95539602288221,
+              "y": 579.354835560939
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-1-contour-2",
+          "quad": [
+            {
+              "x": 916.4793645678332,
+              "y": 259.5615205756973
+            },
+            {
+              "x": 1095.3555478003666,
+              "y": 297.7837351038179
+            },
+            {
+              "x": 979.2301600577766,
+              "y": 770.2441686704801
+            },
+            {
+              "x": 800.620358193616,
+              "y": 731.7310342744647
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-1-contour-3",
+          "quad": [
+            {
+              "x": 1095.3555478003666,
+              "y": 297.7837351038179
+            },
+            {
+              "x": 1274.9058725721466,
+              "y": 336.1500000139947
+            },
+            {
+              "x": 1158.1723247367308,
+              "y": 808.8289695350816
+            },
+            {
+              "x": 979.2301600577766,
+              "y": 770.2441686704801
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-1-contour-4",
+          "quad": [
+            {
+              "x": 1274.9058725721466,
+              "y": 336.1500000139947
+            },
+            {
+              "x": 1454.5410614781056,
+              "y": 374.5343986694456
+            },
+            {
+              "x": 1342.96590261305,
+              "y": 848.6754943393807
+            },
+            {
+              "x": 1158.1723247367308,
+              "y": 808.8289695350816
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-1-contour-5",
+          "quad": [
+            {
+              "x": 1454.5410614781056,
+              "y": 374.5343986694456
+            },
+            {
+              "x": 1636.0916861940643,
+              "y": 413.32808713151917
+            },
+            {
+              "x": 1514.8878582889126,
+              "y": 885.7465470781663
+            },
+            {
+              "x": 1342.96590261305,
+              "y": 848.6754943393807
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-1-contour-6",
+          "quad": [
+            {
+              "x": 1636.0916861940643,
+              "y": 413.32808713151917
+            },
+            {
+              "x": 1815.7371727252364,
+              "y": 451.71468618074476
+            },
+            {
+              "x": 1703.9160100602815,
+              "y": 926.5061612640549
+            },
+            {
+              "x": 1514.8878582889126,
+              "y": 885.7465470781663
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-1-contour-7",
+          "quad": [
+            {
+              "x": 1815.7371727252364,
+              "y": 451.71468618074476
+            },
+            {
+              "x": 1995.3992756657226,
+              "y": 490.10483581982527
+            },
+            {
+              "x": 1873.9371160151575,
+              "y": 963.1673390687273
+            },
+            {
+              "x": 1703.9160100602815,
+              "y": 926.5061612640549
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        }
+      ],
+      "groupes": [
+        {
+          "id": "rangee-1",
+          "points": [
+            {
+              "x": 195.22349661302994,
+              "y": 105.44376148422116
+            },
+            {
+              "x": 1995.3992756657228,
+              "y": 490.1048358198252
+            },
+            {
+              "x": 1873.937116015157,
+              "y": 963.1673390687274
+            },
+            {
+              "x": 93.95539602288217,
+              "y": 579.3548355609393
+            }
+          ],
+          "modules": null,
+          "calibrationConfirmed": false,
+          "scale": null,
+          "facades": [
+            "facade-1-contour-1",
+            "facade-1-contour-2",
+            "facade-1-contour-3",
+            "facade-1-contour-4",
+            "facade-1-contour-5",
+            "facade-1-contour-6",
+            "facade-1-contour-7"
+          ]
+        }
+      ],
+      "avertissements": [
+        "Propositions de contours à vérifier : un rectangle seul ne prouve pas la présence d’un appareil électrique.",
+        "18 mm définit une largeur physique, pas une échelle en pixels. Confirmez le nombre de modules si aucun étalon fiable n’est visible."
+      ]
+    },
+    {
+      "nom": "abb-perspective",
+      "fichier": "tableau-abb-plastron-perspective.png",
+      "dimensions": {
+        "width": 2040,
+        "height": 970
+      },
+      "sha256Image": "04e06c4c2511602309ef1a8b1f75b7be3722d3ec593cfb3d4b03ba575fc3f13f",
+      "annotations": "tableau-abb-plastron-perspective.annotations.json",
+      "sha256AnnotationsUtilisees": "f806642c334008871eaa9d65bb71d332a8367428f22ceebf17ca0f1a18a975e1",
+      "typeSource": "transformation_simulee_de_photo_reelle",
+      "photoOrigine": "tableau-abb-plastron-commons.jpg",
+      "licence": "CC0 1.0, Pittigrilli",
+      "figure": "geometrie-reelle-abb-perspective.observe.jpg",
+      "dureeMs": 1398,
+      "contoursAttendus": 7,
+      "contoursProposes": 8,
+      "toleranceCoinsPixels": 20,
+      "correspondancesDansTolerance": 2,
+      "comparaisons": [
+        {
+          "attendu": "large-f204a",
+          "candidat": 3,
+          "iou": 0.7876,
+          "erreurCoinMax": 107.73,
+          "contourComplet": false,
+          "modulesAttendus": 4,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-1",
+          "candidat": 4,
+          "iou": 0.9417,
+          "erreurCoinMax": 19.47,
+          "contourComplet": true,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-2",
+          "candidat": 5,
+          "iou": 0.9447,
+          "erreurCoinMax": 12.51,
+          "contourComplet": true,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-3",
+          "candidat": 6,
+          "iou": 0.8096,
+          "erreurCoinMax": 93.12,
+          "contourComplet": false,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-4",
+          "candidat": 0,
+          "iou": 0.2878,
+          "erreurCoinMax": 401.64,
+          "contourComplet": false,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-5",
+          "candidat": 1,
+          "iou": 0.2768,
+          "erreurCoinMax": 412.98,
+          "contourComplet": false,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        },
+        {
+          "attendu": "simple-b16-6",
+          "candidat": 2,
+          "iou": 0.2855,
+          "erreurCoinMax": 411.53,
+          "contourComplet": false,
+          "modulesAttendus": 1,
+          "modulesProposes": null
+        }
+      ],
+      "candidatsNonApparies": [
+        7
+      ],
+      "fenetresVisibles": [],
+      "propositions": [
+        {
+          "id": "facade-4",
+          "quad": [
+            {
+              "x": 1345.427377577898,
+              "y": 114.5439374722525
+            },
+            {
+              "x": 1502.035430279267,
+              "y": 108.61933420237862
+            },
+            {
+              "x": 1528.747926591241,
+              "y": 292.6063573720083
+            },
+            {
+              "x": 1364.9507307470828,
+              "y": 300.5095841895015
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-2",
+          "quad": [
+            {
+              "x": 1501.3413862258267,
+              "y": 103.83898354365643
+            },
+            {
+              "x": 1652.7105615953851,
+              "y": 93.85409018060355
+            },
+            {
+              "x": 1689.551324653013,
+              "y": 270.68582679287886
+            },
+            {
+              "x": 1526.1621847682725,
+              "y": 274.79660514455037
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-1",
+          "quad": [
+            {
+              "x": 1650.189312090311,
+              "y": 81.75236124198966
+            },
+            {
+              "x": 1800.224516866576,
+              "y": 71.49653782944748
+            },
+            {
+              "x": 1835.5627228792846,
+              "y": 247.06209563242643
+            },
+            {
+              "x": 1688.898373433108,
+              "y": 267.5517305213578
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-7",
+          "quad": [
+            {
+              "x": 140.72505614050237,
+              "y": 176.600670162067
+            },
+            {
+              "x": 863.1662136222702,
+              "y": 127.6694912992472
+            },
+            {
+              "x": 860.9281945250324,
+              "y": 649.5869139524433
+            },
+            {
+              "x": 69.24095103987322,
+              "y": 710.348355180142
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-2"
+        },
+        {
+          "id": "facade-5",
+          "quad": [
+            {
+              "x": 863.244520243756,
+              "y": 109.40798936971821
+            },
+            {
+              "x": 1022.420581561169,
+              "y": 113.63521081041876
+            },
+            {
+              "x": 1039.9711614215626,
+              "y": 731.4084840206273
+            },
+            {
+              "x": 860.5021204395548,
+              "y": 748.949555149882
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-2"
+        },
+        {
+          "id": "facade-6",
+          "quad": [
+            {
+              "x": 1022.7333012089427,
+              "y": 124.64281522799594
+            },
+            {
+              "x": 1192.5210380286176,
+              "y": 113.0367855029428
+            },
+            {
+              "x": 1217.306028902442,
+              "y": 717.2853810576718
+            },
+            {
+              "x": 1039.981962996552,
+              "y": 731.788695067223
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-2"
+        },
+        {
+          "id": "facade-3",
+          "quad": [
+            {
+              "x": 1192.5210380286176,
+              "y": 113.0367855029428
+            },
+            {
+              "x": 1344.1807991742003,
+              "y": 102.66991373163522
+            },
+            {
+              "x": 1397.2166168177089,
+              "y": 607.8515821563161
+            },
+            {
+              "x": 1213.5765632762752,
+              "y": 626.3624358666435
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-2"
+        },
+        {
+          "id": "facade-8",
+          "quad": [
+            {
+              "x": 1215.3022292884461,
+              "y": 626.1884893310803
+            },
+            {
+              "x": 1298.3531755064535,
+              "y": 617.8169827544992
+            },
+            {
+              "x": 1308.7687036595198,
+              "y": 705.1365611197992
+            },
+            {
+              "x": 1220.4582325817878,
+              "y": 713.7679119430745
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-3"
+        }
+      ],
+      "groupes": [
+        {
+          "id": "rangee-1",
+          "points": [
+            {
+              "x": 1345.1698323633987,
+              "y": 112.09074400910555
+            },
+            {
+              "x": 1799.3035232090713,
+              "y": 66.92090189720362
+            },
+            {
+              "x": 1837.9627939504594,
+              "y": 258.9860120934387
+            },
+            {
+              "x": 1365.978975523277,
+              "y": 310.3039162968779
+            }
+          ],
+          "modules": null,
+          "calibrationConfirmed": false,
+          "scale": null,
+          "facades": [
+            "facade-4",
+            "facade-2",
+            "facade-1"
+          ]
+        },
+        {
+          "id": "rangee-2",
+          "points": [
+            {
+              "x": 144.06352679965048,
+              "y": 151.67343657198882
+            },
+            {
+              "x": 1341.934778330145,
+              "y": 81.27590855303575
+            },
+            {
+              "x": 1409.0395839137784,
+              "y": 720.4688002686066
+            },
+            {
+              "x": 58.49418691676692,
+              "y": 790.5908155714214
+            }
+          ],
+          "modules": null,
+          "calibrationConfirmed": false,
+          "scale": null,
+          "facades": [
+            "facade-7",
+            "facade-5",
+            "facade-6",
+            "facade-3"
+          ]
+        },
+        {
+          "id": "rangee-3",
+          "points": [
+            {
+              "x": 1215.3022292884461,
+              "y": 626.1884893310803
+            },
+            {
+              "x": 1298.3531755064535,
+              "y": 617.8169827544992
+            },
+            {
+              "x": 1308.7687036595198,
+              "y": 705.1365611197992
+            },
+            {
+              "x": 1220.4582325817878,
+              "y": 713.7679119430745
+            }
+          ],
+          "modules": null,
+          "calibrationConfirmed": false,
+          "scale": null,
+          "facades": [
+            "facade-8"
+          ]
+        }
+      ],
+      "avertissements": [
+        "Propositions de contours à vérifier : un rectangle seul ne prouve pas la présence d’un appareil électrique.",
+        "18 mm définit une largeur physique, pas une échelle en pixels. Confirmez le nombre de modules si aucun étalon fiable n’est visible."
+      ]
+    },
+    {
+      "nom": "armoire-plastron",
+      "fichier": "armoire-domotique-commons.jpg",
+      "dimensions": {
+        "width": 960,
+        "height": 720
+      },
+      "sha256Image": "c5a8efc24ab51c145e6c99641036ae952a1db947ae047342fcc23c334c1a2d93",
+      "annotations": "armoire-domotique-commons.facades-visibles.annotations.json",
+      "sha256AnnotationsUtilisees": "481a3c5f9ec973f0b3e85e672992f82f3c3f47870a01745f40bb7a06607ec660",
+      "typeSource": "photo_reelle",
+      "photoOrigine": "armoire-domotique-commons.jpg",
+      "licence": "CC BY-SA 3.0, voir attribution de la photo",
+      "figure": "geometrie-reelle-armoire-plastron.observe.jpg",
+      "dureeMs": 922,
+      "contoursAttendus": null,
+      "contoursProposes": 2,
+      "toleranceCoinsPixels": 4,
+      "correspondancesDansTolerance": 0,
+      "comparaisons": [],
+      "candidatsNonApparies": null,
+      "fenetresVisibles": [
+        {
+          "id": "rangee-haute-visible",
+          "candidats": 0,
+          "hauteursRelatives": [],
+          "note": "Fenetre visible comme repere de hauteur, aucun comptage certifie des appareils sur cette ancienne miniature."
+        },
+        {
+          "id": "rangee-basse-visible",
+          "candidats": 0,
+          "hauteursRelatives": [],
+          "note": "Fenetre visible comme repere de hauteur, aucun comptage certifie des appareils sur cette ancienne miniature."
+        }
+      ],
+      "propositions": [
+        {
+          "id": "facade-1",
+          "quad": [
+            {
+              "x": 36.65620151766382,
+              "y": 21.39776860936892
+            },
+            {
+              "x": 554.8637618418334,
+              "y": 22.285187047458983
+            },
+            {
+              "x": 554.5368424288584,
+              "y": 170.30786005537465
+            },
+            {
+              "x": 42.8076534911655,
+              "y": 170.0845705785588
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-1"
+        },
+        {
+          "id": "facade-2",
+          "quad": [
+            {
+              "x": 38.71823781243337,
+              "y": 170.08278619043494
+            },
+            {
+              "x": 554.5368424288584,
+              "y": 170.30786005537465
+            },
+            {
+              "x": 553.4115735895081,
+              "y": 679.8074334744229
+            },
+            {
+              "x": 72.83254321606972,
+              "y": 695.7582327542439
+            }
+          ],
+          "modules": null,
+          "groupId": "rangee-2"
+        }
+      ],
+      "groupes": [
+        {
+          "id": "rangee-1",
+          "points": [
+            {
+              "x": 36.65620151766382,
+              "y": 21.39776860936892
+            },
+            {
+              "x": 554.8637618418334,
+              "y": 22.285187047458983
+            },
+            {
+              "x": 554.5368424288584,
+              "y": 170.30786005537465
+            },
+            {
+              "x": 42.8076534911655,
+              "y": 170.0845705785588
+            }
+          ],
+          "modules": null,
+          "calibrationConfirmed": false,
+          "scale": null,
+          "facades": [
+            "facade-1"
+          ]
+        },
+        {
+          "id": "rangee-2",
+          "points": [
+            {
+              "x": 38.71823781243337,
+              "y": 170.08278619043494
+            },
+            {
+              "x": 554.5368424288584,
+              "y": 170.30786005537465
+            },
+            {
+              "x": 553.4115735895081,
+              "y": 679.8074334744229
+            },
+            {
+              "x": 72.83254321606972,
+              "y": 695.7582327542439
+            }
+          ],
+          "modules": null,
+          "calibrationConfirmed": false,
+          "scale": null,
+          "facades": [
+            "facade-2"
+          ]
+        }
+      ],
+      "avertissements": [
+        "Propositions de contours à vérifier : un rectangle seul ne prouve pas la présence d’un appareil électrique.",
+        "18 mm définit une largeur physique, pas une échelle en pixels. Confirmez le nombre de modules si aucun étalon fiable n’est visible."
+      ]
+    }
+  ]
+}

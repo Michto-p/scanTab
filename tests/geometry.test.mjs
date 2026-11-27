@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateQuad,rectifiedSize,homography,mapPoint} from '../app/pretraitement/geometry.js';
+import {validateQuad,rectifiedSize,homography,mapPoint,quadsOverlap} from '../app/pretraitement/geometry.js';
 test('Quadrilatères croisés, inversés et externes rejetés',()=>{
   const p=[{x:0,y:0},{x:200,y:0},{x:200,y:100},{x:0,y:100}];
   assert.equal(validateQuad(p,200,100),true);
@@ -9,6 +9,14 @@ test('Quadrilatères croisés, inversés et externes rejetés',()=>{
   assert.equal(validateQuad([{x:-1,y:0},...p.slice(1)],200,100),false);
   assert.equal(validateQuad(Array(4).fill({x:1,y:1}),200,100),false);
   assert.deepEqual(rectifiedSize(p),{width:200,height:100});
+});
+test('Deux rangées inclinées peuvent avoir des enveloppes qui se recouvrent sans se toucher',()=>{
+  const first=[{x:100,y:50},{x:700,y:200},{x:650,y:400},{x:50,y:250}];
+  assert.equal(quadsOverlap(first,first.map(p=>({x:p.x,y:p.y+270}))),false);
+  assert.equal(quadsOverlap(first,first.map(p=>({x:p.x,y:p.y+80}))),true);
+  assert.equal(quadsOverlap(first,first),true);
+  const square=[{x:0,y:0},{x:20,y:0},{x:20,y:20},{x:0,y:20}];
+  assert.equal(quadsOverlap(square,square.map(p=>({x:p.x+20,y:p.y}))),false);
 });
 test('Homographie identité et coins d’une perspective conservés',()=>{
   const p=[{x:0,y:0},{x:320,y:0},{x:320,y:180},{x:0,y:180}];

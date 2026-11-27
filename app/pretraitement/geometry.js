@@ -34,3 +34,14 @@ export function homography(points,width,height) {
 }
 export function mapPoint(m,x,y) { const d=m[6]*x+m[7]*y+m[8];return {x:(m[0]*x+m[1]*y+m[2])/d,y:(m[3]*x+m[4]*y+m[5])/d}; }
 export function snapHalfModule(value) { if(!Number.isFinite(value))throw Error('Nombre de modules invalide.');return Math.round(value*2)/2; }
+
+/** Intersection de surfaces convexes : un simple contact de bord est permis. */
+export function quadsOverlap(first,second){
+  if(!convex(first)||!convex(second))throw Error('Contours invalides pour comparer les rangées.');
+  for(const points of [first,second])for(let i=0;i<4;i++){
+    const a=points[i],b=points[(i+1)%4],axis={x:a.y-b.y,y:b.x-a.x};
+    const project=quad=>quad.map(p=>p.x*axis.x+p.y*axis.y),one=project(first),two=project(second);
+    if(Math.max(...one)<=Math.min(...two)+EPS||Math.max(...two)<=Math.min(...one)+EPS)return false;
+  }
+  return true;
+}

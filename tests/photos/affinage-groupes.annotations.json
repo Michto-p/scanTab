@@ -1,0 +1,9 @@
+{
+  "description":"Scènes synthétiques de redressement et de recherche de joints ; aucune reconnaissance métier évaluée.",
+  "width":1080,
+  "height":430,
+  "row":{"x":90,"y":80,"height":280,"unit":90,"widths":[4,1,1,1,1,1,1]},
+  "parent":[{"x":40,"y":40},{"x":1040,"y":40},{"x":1040,"y":380},{"x":40,"y":380}],
+  "rotation":{"width":1260,"height":720,"points":[{"x":170,"y":40},{"x":1230,"y":250},{"x":1140,"y":670},{"x":80,"y":460}]},
+  "limite":"Le groupe contient des marges : hauteur des façades280px, contenant340px ; le seuil ancien de0,83 aurait rejeté les vrais enfants. Les largeurs sont seulement relatives, aucune conversion18mm."
+}

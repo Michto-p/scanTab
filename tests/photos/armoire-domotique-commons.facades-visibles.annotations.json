@@ -1,0 +1,42 @@
+{
+  "width":960,
+  "height":720,
+  "source":"https://commons.wikimedia.org/wiki/File:Armoire_electrique_domotique.JPG",
+  "licence":"CC BY-SA 3.0, Arnaud 25 ; attribution existante dans armoire-domotique-commons.LICENCE.md",
+  "usage":"Complément de recette géométrique avec plastron ; aucune étiquette électrique ni donnée d’apprentissage.",
+  "annotation":"Repères externes approximatifs des façades visibles dans les deux ouvertures du plastron gauche. La copie 960 px provient d'un original 640 px : les petits joints restent incertains.",
+  "tolerancePixels":4,
+  "ordreQuadrilatere":["haut-gauche","haut-droit","bas-droit","bas-gauche"],
+  "plastronGaucheVisible":[{"x":35,"y":0},{"x":554,"y":0},{"x":558,"y":676},{"x":58,"y":694}],
+  "ouvertures":[
+    {
+      "id":"rangee-haute-visible",
+      "quad":[{"x":86,"y":224},{"x":463,"y":220},{"x":464,"y":267},{"x":87,"y":271}],
+      "bounds":{"x":86,"y":220,"width":378,"height":51},
+      "jointsCandidatsX":[87,122,140,158,176,194,212,230,248,266,284,302,320,338,356,374,392,410,428,446,464],
+      "jointureLargeInitiale":{"left":87,"right":122,"raison":"Première façade visiblement plus large ; ne pas la remplacer par deux découpes uniformes."},
+      "corpsMasqueParPlastron":true,
+      "qualite":"Contours de l'ouverture lisibles ; certains traits fins d'appareil sont proches de la limite de résolution."
+    },
+    {
+      "id":"rangee-basse-visible",
+      "quad":[{"x":89,"y":372},{"x":514,"y":366},{"x":514,"y":413},{"x":90,"y":418}],
+      "bounds":{"x":89,"y":366,"width":425,"height":52},
+      "jointsCandidatsX":[90,124,143,161,179,197,215,233,251,286,304,322,340,358,376,394,412,430,448,466,484,514],
+      "zonesLargesOuAmbigues":[{"left":90,"right":124},{"left":251,"right":286},{"left":484,"right":514}],
+      "corpsMasqueParPlastron":true,
+      "qualite":"Les dernières façades et la zone centrale restent ambiguës ; aucun comptage électrique certifié."
+    }
+  ],
+  "exclusions":[
+    {"nom":"Plastron entre les deux rangées", "bounds":{"x":86,"y":275,"width":430,"height":86}},
+    {"nom":"Coffret voisin ouvert à droite", "bounds":{"x":570,"y":115,"width":390,"height":605}},
+    {"nom":"Obturateurs et modules de communication hauts", "bounds":{"x":82,"y":66,"width":432,"height":58}},
+    {"nom":"Modules domotiques et obturateurs bas", "bounds":{"x":101,"y":531,"width":414,"height":55}}
+  ],
+  "limites":[
+    "Ces limites suivent uniquement les façades affleurant le plastron : les bornes et corps cachés ne doivent pas être extrapolés.",
+    "Les joints candidats servent à comparer une superposition visuelle ; ils ne sont ni des références constructeur ni un comptage certifié.",
+    "Aucun marquage de cette image trop petite n'est déclaré reconnaissable par l'OCR. Le cas ABB avec plastron apporte la preuve de lecture haute définition."
+  ]
+}

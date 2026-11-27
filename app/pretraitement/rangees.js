@@ -1,4 +1,6 @@
 import {homography,mapPoint,rectifiedSize,validateQuad} from './geometry.js';
+import {warpPixels} from './pixels.js';
+import {calibrateRow} from '../segmentation/automatic.js';
 
 const radians=degrees=>degrees*Math.PI/180;
 const degrees=angle=>angle*180/Math.PI;
@@ -137,6 +139,17 @@ export function measureRectifiedFacades(row){
     return {...facade,rectifiedPoints,rectifiedBounds:{...box,width:box.right-box.left,height:box.bottom-box.top}};
   });
   return {width,height,transform,facades};
+}
+
+/** Calibre une rangée sur deux bords humains d'un seul module de 18 mm. */
+export function calibrateFacadeRow(image,{points,first,second}={}){
+  if(!validateQuad(points,image?.width,image?.height))throw Error('Les coins de la rangée à calibrer sont invalides ou hors photo.');
+  if(![first,second].every(point=>Number.isFinite(point?.x)&&Number.isFinite(point?.y)))throw Error('Repérez les deux bords d’un appareil connu de 18 mm.');
+  const {width,height}=rectifiedSize(points),transform=inverseMatrix(homography(points,width,height));
+  const projected=[first,second].map(point=>mapPoint(transform,point.x,point.y));
+  if(projected.some(point=>!Number.isFinite(point.x)||!Number.isFinite(point.y)||point.x< -1e-7||point.y< -1e-7||point.x>width+1e-7||point.y>height+1e-7))throw Error('Les deux bords du repère de 18 mm doivent se trouver dans la rangée.');
+  const straight=warpPixels(image,points),calibrated=calibrateRow(straight,{left:0,right:width,top:0,bottom:height},Math.abs(projected[1].x-projected[0].x));
+  return {...calibrated,...extent(points),points:points.map(point=>({...point})),calibrationConfirmed:true,rectifiedSize:{width,height},scale:{...calibrated.scale,plane:'rangee-redressee'}};
 }
 
 /** Projette les séparations confirmées, sans imposer une coupe par module. */

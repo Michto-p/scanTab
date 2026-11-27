@@ -1,0 +1,21 @@
+{
+  "synthetique": true,
+  "limites": "Rangées et repères humains simulés. Ces images vérifient les coordonnées et les joints après projection ; elles ne mesurent aucune précision de reconnaissance sur photo réelle.",
+  "width": 900,
+  "height": 600,
+  "planeWidth": 550,
+  "planeHeight": 240,
+  "modules": 5.5,
+  "cuts": [0, 1, 3, 5.5],
+  "repere18mm": [{"x": 0, "y": 120}, {"x": 100, "y": 120}],
+  "scenes": [
+    {
+      "nom": "trapèze",
+      "points": [{"x":100,"y":80},{"x":700,"y":130},{"x":650,"y":440},{"x":140,"y":390}]
+    },
+    {
+      "nom": "rangée inclinée",
+      "points": [{"x":140,"y":80},{"x":678,"y":194},{"x":628,"y":429},{"x":90,"y":315}]
+    }
+  ]
+}
